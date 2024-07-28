@@ -1,26 +1,49 @@
-use device::device::spec::DeviceSpec;
+use super::device_manager::DeviceManager;
 
 use std::collections::HashMap;
-
-struct DeviceManager {
-    id_spec_map: HashMap<String, DeviceSpec>,
-}
-
-impl DeviceManager {
-    fn new() -> Self {
-        DeviceManagee {
-            id_spec_map: HashMap::new(),
-        }
-    }
-}
+use std::net::{TcpListener, TcpStream};
 
 pub struct Server {
-    pub ip: &'static str,
-    pub port: u16,
+    pub ip: String,
+    pub port: String,
+    pub devices_spec: HashMap<String, DeviceManager>,
 }
 
 impl Server {
-    pub fn new(ip: &'static str, port: &'static str) -> Self {
-        Server { ip, port }
+    /**
+     * 받은 요청을 기반으로 DeviceManager의 정보를 이용해 응답
+     */
+    pub fn new(ip: String, port: String) -> Self {
+        Server {
+            ip,
+            port,
+            devices_spec: HashMap::new(),
+        }
     }
+
+    pub fn run(&self) {
+        let _ip_and_port = format!("{}:{}", &self.ip, &self.port);
+
+        let _listener = TcpListener::bind(&_ip_and_port);
+        let listener = match _listener {
+            Ok(listener) => listener,
+            Err(e) => {
+                log::error!("{}", e);
+                panic!();
+            }
+        };
+
+        log::info!("Master now running on {}:{}", self.ip, self.port);
+
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => self.handle_connection(stream),
+                Err(e) => {
+                    log::warn!("{}", e);
+                }
+            }
+        }
+    }
+
+    fn handle_connection(&self, mut stream: TcpStream) {}
 }
