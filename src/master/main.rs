@@ -5,7 +5,7 @@ mod server;
 static LOGGER: server::log::Logger = server::log::Logger;
 
 fn init_logger() -> Result<(), SetLoggerError> {
-    log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Info))
+    log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Debug))
 }
 
 fn main() {
@@ -15,5 +15,6 @@ fn main() {
     let server_port: String = String::from("8080");
     let server = server::server::Server::new(server_ip, server_port);
 
-    server.run();
+    let listener = server.init();
+    server.run(listener);
 }

@@ -1,7 +1,10 @@
 use super::device_manager::DeviceManager;
 
 use std::collections::HashMap;
+use std::io::prelude::*;
 use std::net::{TcpListener, TcpStream};
+use std::sync::{Arc, Mutex};
+use std::thread;
 
 pub struct Server {
     pub ip: String,
@@ -21,8 +24,8 @@ impl Server {
         }
     }
 
-    pub fn run(&self) {
-        let _ip_and_port = format!("{}:{}", &self.ip, &self.port);
+    pub fn init(&self) -> TcpListener {
+        let _ip_and_port = format!("{}:{}", self.ip, self.port);
 
         let _listener = TcpListener::bind(&_ip_and_port);
         let listener = match _listener {
@@ -35,15 +38,41 @@ impl Server {
 
         log::info!("Master now running on {}:{}", self.ip, self.port);
 
+        listener
+    }
+
+    pub fn run(self, listener: TcpListener) {
+        let mut thread_handlers = vec![];
+        let server = Arc::new(Mutex::new(self));
+
         for stream in listener.incoming() {
             match stream {
-                Ok(stream) => self.handle_connection(stream),
+                Ok(stream) => {
+                    let server = Arc::clone(&server);
+
+                    let handle = thread::spawn(move || {
+                        let server = server.lock().unwrap();
+                        server.handle_connection(stream);
+                    });
+
+                    thread_handlers.push(handle);
+                }
                 Err(e) => {
                     log::warn!("{}", e);
                 }
             }
         }
+
+        for handle in thread_handlers {
+            handle.join().unwrap(); // panic
+        }
     }
 
-    fn handle_connection(&self, mut stream: TcpStream) {}
+    fn handle_connection(&self, mut stream: TcpStream) {
+        let _current_thread_id = thread::current().id();
+        log::debug!("Handled by thread: {:?}", _current_thread_id);
+
+        let mut buffer = [0; 1024];
+        let bytes_read = stream.read(&mut buffer);
+    }
 }
