@@ -9,13 +9,18 @@ impl log::Log for Logger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            println!(
-                "[{}]({}:{}): {}",
-                record.level(),
-                record.file().unwrap(),
-                record.line().unwrap(),
-                record.args(),
-            );
+            if record.metadata().level() == Level::Warn || record.metadata().level() == Level::Error
+            {
+                println!(
+                    "[{}]({}:{}): {}",
+                    record.level(),
+                    record.file().unwrap(),
+                    record.line().unwrap(),
+                    record.args(),
+                );
+            } else {
+                println!("[{}]: {}", record.level(), record.args(),);
+            }
         }
     }
 
