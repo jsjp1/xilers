@@ -7,7 +7,7 @@ use std::thread;
 pub struct Server {
     pub ip: String,
     pub port: String,
-    pub handler: Arc<Mutex<handler::Handler>>,
+    pub handler: Arc<Mutex<handler::Handler>>, // 멀티 스레드 -> Arc Mutex 스마트 포인터 이용
 }
 
 impl Server {
@@ -48,7 +48,7 @@ impl Server {
             match stream {
                 Ok(stream) => {
                     log::info!("connection 생성 {:?}", stream);
-                    let handler = Arc::clone(&self.handler);
+                    let handler = Arc::clone(&self.handler); // Arc clone 이용해 참조 카운터 증가
                     let _thread = thread::spawn(move || {
                         let handler = handler.lock().unwrap();
                         handler.handle_connection(stream);
