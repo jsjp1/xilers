@@ -33,9 +33,14 @@ impl MongoDB {
     pub async fn create_collection(client: &Client, db_name: &str, coll_name: &str) {
         log::debug!("Mongdb의 Collection을 생성합니다.");
         let _db = client.database(db_name);
-        _db.create_collection(coll_name)
-            .await
-            .expect("Mongodb collection 생성 도중 문제가 발생했습니다.");
+        let _result = _db.create_collection(coll_name).await;
+
+        match _result {
+            Ok(_) => {}
+            Err(e) => {
+                log::warn!("{}", e);
+            }
+        }
     }
 
     pub async fn insert_document(client: &Client, db_name: &str, coll_name: &str, doc: Document) {
