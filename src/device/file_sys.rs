@@ -1,7 +1,8 @@
+use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileNode {
     file_name: String,
     // is_file: bool, file_name 맨 뒤 '/'가 있으면 디렉토리, 아니면 파일로 구분
