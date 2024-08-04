@@ -33,8 +33,21 @@ impl Server {
             }
         };
 
-        log::info!("Master now running on {}:{}", self.ip, self.port);
+        log::info!("TCP connection 대기중 {}:{}", self.ip, self.port);
 
         listener
+    }
+
+    pub fn run(&self, listener: TcpListener) {
+        for stream in listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                    log::info!("connection 생성 {:?}", stream);
+                }
+                Err(e) => {
+                    log::error!("{}", e);
+                }
+            }
+        }
     }
 }

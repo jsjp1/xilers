@@ -11,7 +11,7 @@ fn init_logger() -> Result<(), SetLoggerError> {
 fn main() {
     let _logger_init = init_logger().unwrap();
 
-    let server_ip: String = String::from("127.0.0.1");
+    let server_ip: String = String::from("0.0.0.0");
     let server_port: String = String::from("8080");
     let server = server::server::Server::new(server_ip, server_port);
 
