@@ -51,7 +51,9 @@ impl Server {
                     let handler = Arc::clone(&self.handler); // Arc clone 이용해 참조 카운터 증가
                     let _thread = thread::spawn(move || {
                         let handler = handler.lock().unwrap();
-                        handler.handle_connection(stream);
+
+                        let mut stream = stream;
+                        handler.handle_connection(&mut stream);
                     });
 
                     thread_handler.push(_thread);
