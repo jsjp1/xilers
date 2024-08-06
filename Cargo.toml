@@ -11,6 +11,14 @@ sysinfo = "0.27"
 mongodb = "3.0.1"
 tokio = { version = "1.39.2", features = ["full"] }
 
+[dependencies.uuid]
+version = "1.10.0"
+features = [
+    "v4",
+    "fast-rng",
+    "macro-diagnostics",
+]
+
 [lib]
 name = "device"
 path = "src/mod.rs"

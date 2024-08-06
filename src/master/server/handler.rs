@@ -5,9 +5,10 @@ use crate::server::db;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::TcpStream;
+use uuid::Uuid;
 
 pub struct Handler {
-    pub client_groups: HashMap<String, DeviceManager>,
+    pub client_groups: HashMap<Uuid, DeviceManager>,
     pub db: db::MongoDB,
 }
 
