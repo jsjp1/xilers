@@ -65,7 +65,7 @@ impl Server {
         }
 
         for handle in thread_handler {
-            handle.join().unwrap(); // 데드락 -> panic
+            handle.join().unwrap(); // 데드락 -> panic, 완료성 보장
         }
     }
 }

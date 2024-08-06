@@ -5,10 +5,11 @@ use crate::server::db;
 use std::collections::HashMap;
 use std::io::Read;
 use std::net::TcpStream;
+use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
 pub struct Handler {
-    pub client_groups: HashMap<Uuid, DeviceManager>,
+    pub client_groups: Arc<Mutex<HashMap<Uuid, DeviceManager>>>,
     pub db: db::MongoDB,
 }
 
@@ -16,7 +17,7 @@ impl Handler {
     pub fn new(db_ip: String, db_port: String) -> Self {
         Handler {
             db: db::MongoDB::new(db_ip, db_port),
-            client_groups: HashMap::new(),
+            client_groups: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
