@@ -1,4 +1,11 @@
+use log::SetLoggerError;
 use log::{Level, Metadata, Record};
+
+static LOGGER: super::log::Logger = super::log::Logger;
+
+pub fn init_logger() -> Result<(), SetLoggerError> {
+    log::set_logger(&LOGGER).map(|()| log::set_max_level(log::LevelFilter::Debug))
+}
 
 pub struct Logger;
 
