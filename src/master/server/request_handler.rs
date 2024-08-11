@@ -8,8 +8,37 @@ use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 
+pub struct ClientGroup {
+    pub client_group: Arc<Mutex<HashMap<Uuid, DeviceManager>>>,
+}
+
+impl ClientGroup {
+    pub fn new() -> Self {
+        ClientGroup {
+            client_group: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub fn add_device_manager(&self, id: Uuid, device_manager: DeviceManager) -> bool {
+        let _manager_map_mutex = self.client_group.lock();
+        match _manager_map_mutex {
+            Ok(mut manager_map) => {
+                let insert_res = manager_map.insert(id, device_manager);
+                match insert_res {
+                    Some(_) => true,
+                    None => false,
+                }
+            }
+            Err(e) => {
+                log::error!("{}", e);
+                false
+            }
+        }
+    }
+}
+
 pub struct Handler {
-    pub client_groups: Arc<Mutex<HashMap<Uuid, DeviceManager>>>,
+    pub client_group: ClientGroup,
     pub db: db::MongoDB,
 }
 
@@ -17,7 +46,7 @@ impl Handler {
     pub fn new(db_ip: String, db_port: String) -> Self {
         Handler {
             db: db::MongoDB::new(db_ip, db_port),
-            client_groups: Arc::new(Mutex::new(HashMap::new())),
+            client_group: ClientGroup::new(),
         }
     }
 
@@ -35,8 +64,7 @@ impl Handler {
         match res {
             Ok(_) => {
                 let request = String::from_utf8_lossy(&buffer[..]);
-                println!("Request: {}", request);
-                self.parse_request(&request);
+                let api_request = self.parse_request(&request);
             }
             Err(e) => {
                 log::error!("{}", e);

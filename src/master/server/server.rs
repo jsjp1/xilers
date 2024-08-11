@@ -1,4 +1,4 @@
-use super::handler;
+use super::request_handler;
 
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
@@ -7,7 +7,7 @@ use std::thread;
 pub struct Server {
     pub ip: String,
     pub port: String,
-    pub handler: Arc<Mutex<handler::Handler>>, // 멀티 스레드 -> Arc Mutex 스마트 포인터 이용
+    pub handler: Arc<Mutex<request_handler::Handler>>, // 멀티 스레드 -> Arc Mutex 스마트 포인터 이용
 }
 
 impl Server {
@@ -18,7 +18,7 @@ impl Server {
         Server {
             ip,
             port,
-            handler: Arc::new(Mutex::new(handler::Handler::new(db_ip, db_port))),
+            handler: Arc::new(Mutex::new(request_handler::Handler::new(db_ip, db_port))),
         }
     }
 

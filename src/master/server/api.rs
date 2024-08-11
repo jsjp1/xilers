@@ -1,4 +1,4 @@
-use super::handler::ClientGroup;
+use super::request_handler::ClientGroup;
 
 pub struct Request<'a> {
     pub method: &'a str,
@@ -34,7 +34,7 @@ pub mod api_path {
 }
 
 mod get {
-    use super::super::handler::ClientGroup;
+    use super::super::request_handler::ClientGroup;
     use super::api_path;
     use super::Request;
 
@@ -58,7 +58,7 @@ mod get {
 }
 
 mod post {
-    use super::super::handler::ClientGroup;
+    use super::super::request_handler::ClientGroup;
     use super::Request;
 
     pub fn path_router(request: Request, client_group: &ClientGroup) {}
