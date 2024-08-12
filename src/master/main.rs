@@ -1,3 +1,5 @@
+use server::error_handler::ErrorHandler;
+
 mod server;
 
 #[tokio::main]
@@ -9,10 +11,8 @@ async fn main() {
     let db_ip: String = String::from("127.0.0.1");
     let dp_port: String = String::from("27017");
 
+    ErrorHandler::create_error_log_dir();
     let server = server::server::Server::new(server_ip, server_port, db_ip, dp_port);
-
-    let error_handler = server::error_handler::ErrorHandler::new("/tmp/xilers/error_log");
-    error_handler.create_error_log_dir();
 
     let listener = server.init().await;
     server.run(listener);

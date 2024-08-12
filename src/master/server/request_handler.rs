@@ -1,4 +1,6 @@
 use super::device_manager::DeviceManager;
+use super::error_handler::NotAbortError;
+use super::error_handler::{ErrorHandler, ErrorType};
 use crate::server::api;
 use crate::server::db;
 
@@ -19,32 +21,31 @@ impl ClientGroup {
         }
     }
 
-    pub fn add_device_manager(&self, id: Uuid, device_manager: DeviceManager) -> bool {
+    pub fn add_device_manager(
+        &self,
+        id: Uuid,
+        device_manager: DeviceManager,
+    ) -> Result<(), String> {
         let _manager_map_mutex = self.client_group.lock();
         match _manager_map_mutex {
             Ok(mut manager_map) => {
-                let insert_res = manager_map.insert(id, device_manager);
-                match insert_res {
-                    Some(_) => true,
-                    None => false,
-                }
+                manager_map.insert(id, device_manager);
+                Ok(())
             }
-            Err(e) => {
-                log::error!("{}", e);
-                false
-            }
+            Err(e) => Err(e.to_string()),
         }
     }
 }
 
-pub struct Handler {
+pub struct RequestHandler {
+    // request handling과 error 처리
     pub client_group: ClientGroup,
     pub db: db::MongoDB,
 }
 
-impl Handler {
+impl RequestHandler {
     pub fn new(db_ip: String, db_port: String) -> Self {
-        Handler {
+        RequestHandler {
             db: db::MongoDB::new(db_ip, db_port),
             client_group: ClientGroup::new(),
         }
@@ -65,9 +66,14 @@ impl Handler {
             Ok(_) => {
                 let request = String::from_utf8_lossy(&buffer[..]);
                 let api_request = self.parse_request(&request);
+
+                // TODO: api 결과 받아서 처리 -> nonblocking io + callback?
+                // TODO: throw된 error받아서 error handler로 보냄
             }
             Err(e) => {
-                log::error!("{}", e);
+                let _abort_type = NotAbortError::Minor(e.to_string());
+                let not_abort_error = ErrorType::NotAbortError(_abort_type);
+                ErrorHandler::process_error(not_abort_error);
             }
         }
     }
