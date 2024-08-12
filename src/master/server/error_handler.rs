@@ -6,7 +6,12 @@ use std::process;
 
 pub enum ErrorType {
     AbortError(String),
-    NotAbortError(String),
+    NotAbortError(NotAbortError),
+}
+
+pub enum NotAbortError {
+    Minor(String),  // 로그를 남기지 않음
+    Severe(String), // 로그를 남겨야되는 오류
 }
 
 pub struct ErrorHandler<'a> {
@@ -26,13 +31,18 @@ impl<'a> ErrorHandler<'a> {
                 self.save_error_log(e);
                 process::exit(0);
             }
-            ErrorType::NotAbortError(e) => {
-                log::error!(
-                    "NotAbortError: {}, 에러가 발생했습니다. 프로그램을 종료하지 않습니다.",
-                    e
-                );
-                self.save_error_log(e);
-            }
+            ErrorType::NotAbortError(e) => match e {
+                NotAbortError::Minor(l) => {
+                    log::error!("NotAbortError: {}, 프로그램을 종료하지 않습니다.", l);
+                }
+                NotAbortError::Severe(l) => {
+                    log::error!(
+                        "NotAbortError: {}, 프로그램을 종료하지 않습니다. 로그를 납깁니다.",
+                        l
+                    );
+                    self.save_error_log(l);
+                }
+            },
         }
     }
 
