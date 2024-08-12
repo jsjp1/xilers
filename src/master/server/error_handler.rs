@@ -14,13 +14,13 @@ pub enum NotAbortError {
     Severe(String), // 로그를 남겨야되는 오류
 }
 
-pub struct ErrorHandler<'a> {
-    error_log_dir: &'a str,
+pub struct ErrorHandler {
+    error_log_dir: String,
 }
 
-impl<'a> ErrorHandler<'a> {
+impl ErrorHandler {
     // request handler만으로부터 에러를 받아 처리하는 class
-    pub fn new(error_log_dir: &'a str) -> Self {
+    pub fn new(error_log_dir: String) -> Self {
         ErrorHandler { error_log_dir }
     }
 
@@ -47,7 +47,7 @@ impl<'a> ErrorHandler<'a> {
     }
 
     pub fn create_error_log_dir(&self) {
-        let is_created = std::fs::create_dir_all(self.error_log_dir);
+        let is_created = std::fs::create_dir_all(self.error_log_dir.as_str());
         match is_created {
             Ok(()) => (),
             Err(e) => {
