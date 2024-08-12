@@ -1,5 +1,8 @@
+use crate::server::error_handler::NotAbortError;
+
 use super::request_handler;
 
+use super::error_handler::{ErrorHandler, ErrorType};
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -34,8 +37,9 @@ impl Server {
         let listener = match _listener {
             Ok(listener) => listener,
             Err(e) => {
-                log::error!("{}", e);
-                panic!();
+                let abort_error = ErrorType::AbortError(e.to_string());
+                ErrorHandler::process_error(abort_error);
+                panic!() // 문맥상 없어도됨, 문법상 필요
             }
         };
 
@@ -61,7 +65,9 @@ impl Server {
                     thread_handler.push(_thread);
                 }
                 Err(e) => {
-                    log::error!("{}", e);
+                    let abort_error = ErrorType::AbortError(e.to_string());
+                    ErrorHandler::process_error(abort_error);
+                    panic!() // 문맥상 없어도됨, 문법상 필요
                 }
             }
         }

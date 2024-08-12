@@ -43,6 +43,7 @@ impl ErrorHandler {
     }
 
     pub fn create_error_log_dir() {
+        log::debug!("error log 디렉토리를 생성합니다.");
         let is_created = std::fs::create_dir_all(ERROR_LOG_DIR);
         match is_created {
             Ok(()) => (),
