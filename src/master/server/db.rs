@@ -14,42 +14,47 @@ impl MongoDB {
         MongoDB { ip, port }
     }
 
-    pub async fn connect_mongodb(&self) -> Option<Client> {
+    pub async fn connect_mongodb(&self) -> Result<Client, String> {
         let mongodb_uri = format!("mongodb://{}:{}", self.ip, self.port);
-        let _client_options = ClientOptions::parse(mongodb_uri)
-            .await
-            .expect("option이 잘못되었습니다.");
+        let _client_options = match ClientOptions::parse(mongodb_uri).await {
+            Ok(client_options) => client_options,
+            Err(e) => {
+                return Err(e.to_string());
+            }
+        };
 
         let _client = Client::with_options(_client_options);
         match _client {
-            Ok(client) => Some(client),
-            Err(e) => {
-                log::error!("{}", e);
-                None
-            }
+            Ok(client) => Ok(client),
+            Err(e) => Err(e.to_string()),
         }
     }
 
     pub async fn create_collection(client: &Client, db_name: &str, coll_name: &str) {
         log::debug!("Mongdb의 Collection을 생성합니다.");
         let _db = client.database(db_name);
-        let _result = _db.create_collection(coll_name).await;
+        let res = _db.create_collection(coll_name).await;
 
-        match _result {
+        match res {
             Ok(_) => {}
             Err(e) => {
-                log::warn!("{}", e);
+                log::warn!("{:?}", e);
             }
         }
     }
 
-    pub async fn insert_document(client: &Client, db_name: &str, coll_name: &str, doc: Document) {
+    pub async fn insert_document(
+        client: &Client,
+        db_name: &str,
+        coll_name: &str,
+        doc: Document,
+    ) -> Result<(), String> {
         let _db = client.database(db_name);
         let _coll = _db.collection(coll_name);
 
-        _coll
-            .insert_one(doc)
-            .await
-            .expect("Mongodb insert를 하는 과정에서 문제가 발생했습니다.");
+        match _coll.insert_one(doc).await {
+            Ok(_) => Ok(()),
+            Err(e) => Err(e.to_string()),
+        }
     }
 }
