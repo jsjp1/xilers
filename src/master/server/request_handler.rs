@@ -58,7 +58,7 @@ impl RequestHandler {
         db::MongoDB::create_collection(&db_client, "xilers", "device_file_system").await;
     }
 
-    pub fn handle_connection(&self, stream: &mut TcpStream) {
+    pub fn handle_connection(&self, stream: &mut TcpStream) -> Result<(), ErrorType> {
         let mut buffer = [0; 1024];
 
         let res = stream.read(&mut buffer);
@@ -69,11 +69,13 @@ impl RequestHandler {
 
                 // TODO: api 결과 받아서 처리 -> nonblocking io + callback?
                 // TODO: throw된 error받아서 error handler로 보냄
+
+                Ok(())
             }
             Err(e) => {
                 let _abort_type = NotAbortError::Minor(e.to_string());
                 let not_abort_error = ErrorType::NotAbortError(_abort_type);
-                ErrorHandler::process_error(not_abort_error);
+                Err(not_abort_error)
             }
         }
     }

@@ -54,26 +54,36 @@ impl Server {
             match stream {
                 Ok(stream) => {
                     log::info!("connection 생성 {:?}", stream);
+                    // TODO: thread per request에서 pool 혹은 nonblocking io로 변경
                     let handler = Arc::clone(&self.handler); // Arc clone 이용해 참조 카운터 증가
                     let _thread = thread::spawn(move || {
                         let handler = handler.lock().unwrap();
 
                         let mut stream = stream;
-                        handler.handle_connection(&mut stream);
+                        match handler.handle_connection(&mut stream) {
+                            Ok(_) => {}
+                            Err(error_type) => ErrorHandler::process_error(error_type),
+                        }
                     });
 
                     thread_handler.push(_thread);
                 }
                 Err(e) => {
                     let abort_error = ErrorType::AbortError(e.to_string());
-                    ErrorHandler::process_error(abort_error);
-                    panic!() // 문맥상 없어도됨, 문법상 필요
+                    ErrorHandler::process_error(abort_error)
                 }
             }
         }
 
         for handle in thread_handler {
-            handle.join().unwrap(); // 데드락 -> panic, 완료성 보장
+            match handle.join() {
+                Ok(_) => {}
+                Err(e) => {
+                    let _abort_type = NotAbortError::Severe(format!("{:?}", e));
+                    let not_abort_error = ErrorType::NotAbortError(_abort_type);
+                    ErrorHandler::process_error(not_abort_error)
+                }
+            }
         }
     }
 }
