@@ -8,6 +8,7 @@ pub struct Request<'a> {
     pub method: &'a str,
     pub path: &'a str,
     pub payload: &'a str,
+    pub http_version: &'a str,
 }
 
 pub fn method_router(request: Request, client_group: &ClientGroup) -> Result<String, String> {
@@ -24,7 +25,6 @@ pub fn method_router(request: Request, client_group: &ClientGroup) -> Result<Str
 pub fn extract_uuid_from_request(request_path: &str, regex_path: &str) -> Uuid {
     let re = Regex::new(regex_path).unwrap();
     let uuid_str = re.find(request_path).unwrap().as_str();
-    log::debug!("uuid: {}", uuid_str);
     Uuid::parse_str(uuid_str).unwrap()
 }
 
@@ -215,7 +215,10 @@ mod post {
 
             let res = client_group.add_device_manager(uuid, device_manager);
             match res {
-                Ok(_) => Ok(uuid.to_string()),
+                Ok(_) => {
+                    log::debug!("{:?}", uuid);
+                    Ok(uuid.to_string())
+                }
                 Err(e) => Err(e),
             }
         } else {

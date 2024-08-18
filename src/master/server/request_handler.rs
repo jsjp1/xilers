@@ -87,12 +87,18 @@ impl RequestHandler {
             Ok(_) => {
                 let request = String::from_utf8_lossy(&buffer[..]);
                 let api_request = self.parse_request(&request);
+                let http_version = api_request.http_version.to_string();
 
                 let response_data = api::method_router(api_request, &self.client_group);
 
                 match response_data {
                     Ok(response) => {
-                        stream.write(response.as_bytes()).unwrap();
+                        let http_response = RequestHandler::http_response_wrapping(
+                            response,
+                            http_version,
+                            "200 OK".to_string(),
+                        );
+                        stream.write(http_response.as_bytes()).unwrap();
                         Ok(true)
                     }
                     Err(e) => {
@@ -130,5 +136,20 @@ impl RequestHandler {
         };
 
         api_request_struct
+    }
+
+    fn http_response_wrapping(
+        response: String,
+        http_version: String,
+        http_status: String,
+    ) -> String {
+        let response = format!(
+            "{} {}\r\nContent-Length: {}\r\n\r\n{}",
+            http_version,
+            http_status,
+            response.len(),
+            response
+        );
+        response
     }
 }
