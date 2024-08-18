@@ -79,7 +79,7 @@ impl RequestHandler {
         }
     }
 
-    pub fn handle_connection(&self, stream: &mut TcpStream) -> Result<bool, ErrorType> {
+    pub fn handle_connection(&self, stream: &mut TcpStream) -> Result<(), ErrorType> {
         let mut buffer = [0; 1024];
 
         let res = stream.read(&mut buffer);
@@ -99,7 +99,7 @@ impl RequestHandler {
                             "200 OK".to_string(),
                         );
                         stream.write(http_response.as_bytes()).unwrap();
-                        Ok(true)
+                        Ok(())
                     }
                     Err(e) => {
                         let _abort_type = NotAbortError::Minor(e.to_string());
