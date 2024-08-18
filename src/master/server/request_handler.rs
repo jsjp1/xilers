@@ -121,6 +121,7 @@ impl RequestHandler {
         let header_info: Vec<&'a str> = request_slice_vec[0].split(" ").collect();
         let method = header_info[0];
         let path = header_info[1];
+        let http_version = header_info[2];
         let payload = request_slice_vec[request_slice_vec.len() - 1];
 
         log::debug!(
@@ -133,6 +134,7 @@ impl RequestHandler {
             method,
             path,
             payload,
+            http_version,
         };
 
         api_request_struct
