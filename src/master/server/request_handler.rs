@@ -1,11 +1,11 @@
 use super::device_manager::DeviceManager;
+use super::error_handler::ErrorType;
 use super::error_handler::NotAbortError;
-use super::error_handler::{ErrorHandler, ErrorType};
 use crate::server::api;
 use crate::server::db;
 
 use std::collections::HashMap;
-use std::io::Read;
+use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -18,6 +18,17 @@ impl ClientGroup {
     pub fn new() -> Self {
         ClientGroup {
             client_group: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    pub fn get_device_manager(&self, id: Uuid) -> Result<Option<DeviceManager>, String> {
+        let client_group_lock = self.client_group.lock();
+        match client_group_lock {
+            Ok(m_guard) => {
+                let device_manager_opt = m_guard.get(&id).cloned();
+                Ok(device_manager_opt)
+            }
+            Err(e) => Err(e.to_string()),
         }
     }
 
@@ -51,14 +62,24 @@ impl RequestHandler {
         }
     }
 
-    pub async fn init(&self) {
-        let db_client = self.db.connect_mongodb().await.unwrap();
+    pub async fn init(&self) -> Result<(), ErrorType> {
+        // TODO: db_client 추후 사용할 수 있으므로 반환하도록 변경
+        match self.db.connect_mongodb().await {
+            Ok(db_client) => {
+                db::MongoDB::create_collection(&db_client, "xilers", "device_spec").await;
+                db::MongoDB::create_collection(&db_client, "xilers", "device_file_system").await;
 
-        db::MongoDB::create_collection(&db_client, "xilers", "device_spec").await;
-        db::MongoDB::create_collection(&db_client, "xilers", "device_file_system").await;
+                Ok(())
+            }
+            Err(e) => {
+                let _abort_type = NotAbortError::Severe(e);
+                let not_abort_error = ErrorType::NotAbortError(_abort_type);
+                Err(not_abort_error)
+            }
+        }
     }
 
-    pub fn handle_connection(&self, stream: &mut TcpStream) -> Result<(), ErrorType> {
+    pub fn handle_connection(&self, stream: &mut TcpStream) -> Result<bool, ErrorType> {
         let mut buffer = [0; 1024];
 
         let res = stream.read(&mut buffer);
@@ -67,10 +88,19 @@ impl RequestHandler {
                 let request = String::from_utf8_lossy(&buffer[..]);
                 let api_request = self.parse_request(&request);
 
-                // TODO: api 결과 받아서 처리 -> nonblocking io + callback?
-                // TODO: throw된 error받아서 error handler로 보냄
+                let response_data = api::method_router(api_request, &self.client_group);
 
-                Ok(())
+                match response_data {
+                    Ok(response) => {
+                        stream.write(response.as_bytes()).unwrap();
+                        Ok(true)
+                    }
+                    Err(e) => {
+                        let _abort_type = NotAbortError::Minor(e.to_string());
+                        let not_abort_error = ErrorType::NotAbortError(_abort_type);
+                        Err(not_abort_error)
+                    }
+                }
             }
             Err(e) => {
                 let _abort_type = NotAbortError::Minor(e.to_string());

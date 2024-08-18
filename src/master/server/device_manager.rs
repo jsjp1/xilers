@@ -1,9 +1,11 @@
 use device::device::file_sys::FileSystem;
 use device::device::spec::DeviceSpec;
+use serde::{Deserialize, Serialize};
 
 use std::collections::HashMap;
 use uuid::Uuid;
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DeviceManager {
     // 각 client group(device들의 모임)마다 하나씩 존재
     // spec을 가리키는 id와 fs를 가리키는 id가 동일해야 됨 (client의 고유 id)

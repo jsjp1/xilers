@@ -1,6 +1,5 @@
-use crate::server::error_handler::NotAbortError;
-
 use super::request_handler;
+use crate::server::error_handler::NotAbortError;
 
 use super::error_handler::{ErrorHandler, ErrorType};
 use std::net::{TcpListener, TcpStream};
@@ -9,15 +8,13 @@ use std::thread;
 
 pub struct Server {
     pub ip: String,
-    pub port: String,
+    pub port: u16,
     pub handler: Arc<Mutex<request_handler::RequestHandler>>, // 멀티 스레드 -> Arc Mutex 스마트 포인터 이용
 }
 
 impl Server {
-    /**
-     * 받은 요청을 기반으로 DeviceManager의 정보를 이용해 응답
-     */
-    pub fn new(ip: String, port: String, db_ip: String, db_port: String) -> Self {
+    // 받은 요청을 기반으로 DeviceManager의 정보를 이용해 응답
+    pub fn new(ip: String, port: u16, db_ip: String, db_port: String) -> Self {
         Server {
             ip,
             port,
@@ -29,7 +26,11 @@ impl Server {
 
     pub async fn init(&self) -> TcpListener {
         log::info!("Handler초기화를 진행합니다.");
-        self.handler.lock().unwrap().init().await;
+        let handler_init_res = self.handler.lock().unwrap().init().await;
+        match handler_init_res {
+            Ok(_) => {}
+            Err(error_type) => ErrorHandler::process_error(error_type),
+        }
 
         let _ip_and_port = format!("{}:{}", self.ip, self.port);
 
