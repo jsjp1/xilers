@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct DeviceSpec {
     pub ip: String,
     pub port: u16, // 어떤 port로 listen하고 있는지

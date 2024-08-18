@@ -39,6 +39,7 @@ impl FileNode {
     }
 }
 
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileSystem {
     pub node: FileNode, // 결정된 root node
 }
