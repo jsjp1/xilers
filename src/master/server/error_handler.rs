@@ -21,22 +21,25 @@ pub struct ErrorHandler;
 impl ErrorHandler {
     // request handler만으로부터 에러를 받아 처리하는 class
     pub fn process_error(e_type: ErrorType) {
+        let current_time = Local::now().format("%H:%M").to_string();
+
         match e_type {
             ErrorType::AbortError(e) => {
                 log::error!("AbortError: {}, 프로그램을 종료합니다.", e);
-                ErrorHandler::save_error_log(e);
+                ErrorHandler::save_error_log(format!("[{}]: {}", current_time, e));
                 process::exit(0);
             }
             ErrorType::NotAbortError(e) => match e {
                 NotAbortError::Minor(l) => {
                     log::error!("NotAbortError: {}, 프로그램을 종료하지 않습니다.", l);
+                    ErrorHandler::save_error_log(format!("[{}]: {}", current_time, l));
                 }
                 NotAbortError::Severe(l) => {
                     log::error!(
                         "NotAbortError: {}, 프로그램을 종료하지 않습니다. 로그를 납깁니다.",
                         l
                     );
-                    ErrorHandler::save_error_log(l);
+                    ErrorHandler::save_error_log(format!("[{}]: {}", current_time, l));
                 }
             },
         }
