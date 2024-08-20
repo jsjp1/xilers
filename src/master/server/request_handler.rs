@@ -4,47 +4,39 @@ use super::error_handler::NotAbortError;
 use crate::server::api;
 use crate::server::db;
 
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::io::{Read, Write};
 use std::net::TcpStream;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use uuid::Uuid;
 
 pub struct ClientGroup {
-    pub client_group: Arc<Mutex<HashMap<Uuid, DeviceManager>>>,
+    pub client_group: HashMap<Uuid, DeviceManager>, // 기존에는 여기서 Arc Mutex로 감쌌는데, get_device와 같은 작업할 때만 new로 감싸기
 }
 
 impl ClientGroup {
     pub fn new() -> Self {
         ClientGroup {
-            client_group: Arc::new(Mutex::new(HashMap::new())),
+            client_group: (HashMap::new()),
         }
     }
 
-    pub fn get_device_manager(&self, id: Uuid) -> Result<Option<DeviceManager>, String> {
-        let client_group_lock = self.client_group.lock();
-        match client_group_lock {
-            Ok(m_guard) => {
-                let device_manager_opt = m_guard.get(&id).cloned();
-                Ok(device_manager_opt)
-            }
-            Err(e) => Err(e.to_string()),
+    pub fn get_device_manager(&mut self, id: Uuid) -> Result<Option<&mut DeviceManager>, String> {
+        let device_manager_opt = self.client_group.get_mut(&id);
+        match device_manager_opt {
+            Some(manager) => Ok(Some(manager)),
+            None => Ok(None),
         }
     }
 
     pub fn add_device_manager(
-        &self,
+        &mut self,
         id: Uuid,
         device_manager: DeviceManager,
     ) -> Result<(), String> {
-        let _manager_map_mutex = self.client_group.lock();
-        match _manager_map_mutex {
-            Ok(mut manager_map) => {
-                manager_map.insert(id, device_manager);
-                Ok(())
-            }
-            Err(e) => Err(e.to_string()),
-        }
+        self.client_group.insert(id, device_manager);
+        Ok(())
     }
 }
 
@@ -79,18 +71,19 @@ impl RequestHandler {
         }
     }
 
-    pub fn handle_connection(&self, stream: &mut TcpStream) -> Result<(), ErrorType> {
+    pub fn handle_connection(&mut self, stream: &mut TcpStream) -> Result<(), ErrorType> {
         let mut buffer = [0; 1024];
 
         let res = stream.read(&mut buffer);
         match res {
             Ok(_) => {
                 let request = String::from_utf8_lossy(&buffer[..]);
-                let api_request = self.parse_request(&request);
+
+                let api_request = RequestHandler::parse_request(&request);
                 let http_version = api_request.http_version.to_string();
+                let response_data = api::method_router(api_request, self.client_group.borrow_mut());
 
-                let response_data = api::method_router(api_request, &self.client_group);
-
+                // TODO: http response status code 추가
                 match response_data {
                     Ok(response) => {
                         let http_response = RequestHandler::http_response_wrapping(
@@ -116,7 +109,7 @@ impl RequestHandler {
         }
     }
 
-    fn parse_request<'a>(&'a self, request_str: &'a str) -> api::Request {
+    fn parse_request<'a>(request_str: &'a str) -> api::Request {
         let request_slice_vec: Vec<&'a str> = request_str.split("\r\n").collect();
         let header_info: Vec<&'a str> = request_slice_vec[0].split(" ").collect();
         let method = header_info[0];

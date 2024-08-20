@@ -16,7 +16,9 @@ impl log::Log for Logger {
 
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
-            if record.metadata().level() == Level::Warn || record.metadata().level() == Level::Error
+            if record.metadata().level() == Level::Debug
+                || record.metadata().level() == Level::Warn
+                || record.metadata().level() == Level::Error
             {
                 println!(
                     "[{}]({}:{}): {}",

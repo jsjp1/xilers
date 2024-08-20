@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FileNode {
     file_name: String,
     // is_file: bool, file_name 맨 뒤 '/'가 있으면 디렉토리, 아니면 파일로 구분
@@ -39,7 +39,7 @@ impl FileNode {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FileSystem {
     pub node: FileNode, // 결정된 root node
 }

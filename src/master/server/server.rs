@@ -58,7 +58,7 @@ impl Server {
                     // TODO: thread per request에서 pool 혹은 nonblocking io로 변경
                     let handler = Arc::clone(&self.handler); // Arc clone 이용해 참조 카운터 증가
                     let _thread = thread::spawn(move || {
-                        let handler = handler.lock().unwrap();
+                        let mut handler = handler.lock().unwrap();
 
                         let mut stream = stream;
                         match handler.handle_connection(&mut stream) {
