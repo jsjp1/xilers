@@ -22,7 +22,7 @@ async fn main() {
 
     let client = reqwest::Client::new();
     let uuid = client
-        .post("http://xilers.jieeen.co.kr:8080/device-manager/")
+        .post("http://xilers.jieeen.kr:8080/device-manager/")
         .body("")
         .send()
         .await
@@ -32,10 +32,7 @@ async fn main() {
     let spec = serde_json::to_string(&a).unwrap();
     let s = format!(r"{}", spec);
 
-    let c = format!(
-        "http://xilers.jieeen.co.kr:8080/device-manager/{}/spec",
-        body
-    );
+    let c = format!("http://xilers.jieeen.kr:8080/device-manager/{}/spec", body);
     let d = client.post(c).body(s).send().await.unwrap();
     let aaa = d.text().await.unwrap();
 
