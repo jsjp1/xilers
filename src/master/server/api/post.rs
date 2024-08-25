@@ -1,7 +1,7 @@
 use std::borrow::BorrowMut;
 use std::sync::Mutex;
 
-use actix_web::{web, HttpResponse, Responder, Result};
+use actix_web::{web, HttpRequest, HttpResponse, Responder, Result};
 use device::device::file_sys::FileSystem;
 use device::device::spec::DeviceSpec;
 use uuid::Uuid;
@@ -31,6 +31,7 @@ pub async fn add_device_manager(
 }
 
 pub async fn add_device_spec(
+    req: HttpRequest,
     data: web::Data<Mutex<server::server::AppState>>,
     path: web::Path<String>,
     spec: web::Bytes, // serialize된 spec
@@ -47,7 +48,8 @@ pub async fn add_device_spec(
     };
 
     let new_spec_uuid = Uuid::new_v4();
-    let spec: DeviceSpec = serde_json::from_slice(spec.as_ref()).unwrap();
+    let mut spec: DeviceSpec = serde_json::from_slice(spec.as_ref()).unwrap();
+    spec.ip = req.peer_addr().unwrap().ip().to_string();
 
     manager.add_device_spec(new_spec_uuid, spec.clone());
     log::debug!("새로운 spec이 추가되었습니다. uuid: {}", new_spec_uuid);
