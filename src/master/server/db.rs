@@ -6,11 +6,11 @@ use mongodb::{options::ClientOptions, Client};
 
 pub struct MongoDB {
     ip: String,
-    port: String,
+    port: u16,
 }
 
 impl MongoDB {
-    pub fn new(ip: String, port: String) -> Self {
+    pub fn new(ip: String, port: u16) -> Self {
         MongoDB { ip, port }
     }
 

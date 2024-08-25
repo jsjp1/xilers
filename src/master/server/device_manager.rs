@@ -22,32 +22,32 @@ impl DeviceManager {
     }
 
     pub fn add_device_spec(&mut self, id: Uuid, device_spec: DeviceSpec) {
-        log::debug!("{}에 해당하는 device의 spec을 추가합니다.", id);
         self.id_spec_map.insert(id, device_spec);
     }
 
     pub fn add_device_fs(&mut self, id: Uuid, file_system: FileSystem) {
-        log::debug!("{}에 해당하는 device의 file 정보를 추가합니다.", id);
         self.id_fs_map.insert(id, file_system);
     }
 
     pub fn get_device_spec(&self, id: Uuid) -> Option<&DeviceSpec> {
-        log::debug!("{}에 해당하는 device의 정보를 획득합니다.", id);
         self.id_spec_map.get(&id)
     }
 
     pub fn get_device_fs(&self, id: Uuid) -> Option<&FileSystem> {
-        log::debug!("{}에 해당하는 device의 file 정보를 획득합니다.", id);
         self.id_fs_map.get(&id)
     }
 
-    pub fn delete_device_spec(&mut self, id: Uuid) -> Option<DeviceSpec> {
-        log::debug!("{}에 해당하는 device의 spec을 제거합니다.", id);
-        self.id_spec_map.remove(&id)
+    pub fn delete_device_spec(&mut self, id: Uuid) -> bool {
+        match self.id_spec_map.remove(&id) {
+            Some(_) => true,
+            None => false,
+        }
     }
 
-    pub fn delete_device_fs(&mut self, id: Uuid) -> Option<FileSystem> {
-        log::debug!("{}에 해당하는 device의 file system을 제거합니다.", id);
-        self.id_fs_map.remove(&id)
+    pub fn delete_device_fs(&mut self, id: Uuid) -> bool {
+        match self.id_fs_map.remove(&id) {
+            Some(_) => true,
+            None => false,
+        }
     }
 }
