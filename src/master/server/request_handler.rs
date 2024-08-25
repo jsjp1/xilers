@@ -72,7 +72,8 @@ impl RequestHandler {
     }
 
     pub fn handle_connection(&mut self, stream: &mut TcpStream) -> Result<(), ErrorType> {
-        let mut buffer = [0; 1024];
+        // let mut buffer = [0; 1024];
+        let mut buffer = vec![0; 1_000_000]; // test용으로 잠깐... 이후 수정 필요
 
         let res = stream.read(&mut buffer);
         match res {

@@ -16,3 +16,4 @@ Cargo.lock
 # EDIT
 .DS_Store
 .idea/
+*.txt

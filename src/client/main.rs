@@ -1,5 +1,8 @@
+use std::borrow::{Borrow, BorrowMut};
+
 use sysinfo::{System, SystemExt};
 
+use device::device::file_sys::{FileNode, FileSystem};
 use device::device::spec::DeviceSpec;
 
 #[tokio::main]
@@ -22,7 +25,7 @@ async fn main() {
 
     let client = reqwest::Client::new();
     let uuid = client
-        .post("http://xilers.jieeen.kr:8080/device-manager/")
+        .post("http://127.0.0.1:8080/device-manager/")
         .body("")
         .send()
         .await
@@ -32,10 +35,28 @@ async fn main() {
     let spec = serde_json::to_string(&a).unwrap();
     let s = format!(r"{}", spec);
 
-    let c = format!("http://xilers.jieeen.kr:8080/device-manager/{}/spec", body);
+    let c = format!("http://127.0.0.1:8080/device-manager/{}/spec", body);
     let d = client.post(c).body(s).send().await.unwrap();
     let aaa = d.text().await.unwrap();
 
     // 응답 출력
     println!("Response: {:?}", aaa);
+
+    let mut root_path = "/Users/jin/Desktop/book".to_string();
+    let mut file_system = FileSystem::new(root_path.borrow_mut());
+    file_system.init_file_node();
+
+    // Structure 출력
+    println!("{:#?}", file_system);
+
+    let x = format!("http://127.0.0.1:8080/device-manager/{}/fs", body);
+    let y = client
+        .post(x)
+        .body(serde_json::to_string(&file_system).unwrap())
+        .send()
+        .await
+        .unwrap();
+    let z = y.text().await.unwrap();
+
+    println!("Response: {:?}", z);
 }
