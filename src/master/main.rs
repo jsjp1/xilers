@@ -9,12 +9,7 @@ fn main() {
     let _logger_init = server::log::init_logger().unwrap();
     ErrorHandler::create_error_log_dir();
 
-    let server = Server::new(
-        "127.0.0.1".to_string(),
-        8080,
-        "127.0.0.1".to_string(),
-        27017,
-    );
+    let server = Server::new("0.0.0.0".to_string(), 8080, "127.0.0.1".to_string(), 27017);
 
     loop {
         let (tx, rx) = mpsc::channel();
