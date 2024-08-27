@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DeviceManager {
-    id_spec_map: HashMap<Uuid, DeviceSpec>,
-    id_fs_map: HashMap<Uuid, FileSystem>,
+    pub id_spec_map: HashMap<Uuid, DeviceSpec>,
+    pub id_fs_map: HashMap<Uuid, FileSystem>,
 }
 
 pub async fn get_device_manager(
