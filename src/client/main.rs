@@ -1,7 +1,8 @@
 use std::env;
 
 mod ui;
-use ui::cli::cli::Cli;
+use ui::cli::interface::Cli;
+use ui::interface::Interface;
 
 #[tokio::main]
 async fn main() {

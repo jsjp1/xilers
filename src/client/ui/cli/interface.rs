@@ -1,27 +1,28 @@
-use device::device::{
-    file_sys::{FileNode, FileSystem},
-    spec::DeviceSpec,
+use std::{
+    borrow::BorrowMut,
+    io::{self, Write},
 };
 use sysinfo::{System, SystemExt};
 use uuid::Uuid;
 
 use super::super::request;
-use std::{
-    borrow::BorrowMut,
-    io::{self, Write},
-};
+use device::device::{file_sys::FileSystem, spec::DeviceSpec};
+
+use super::super::interface;
 
 pub struct Cli {
     master_addr: String,
 }
 
-// TODO: gui와 공통된 부분 빼기
 impl Cli {
     pub fn new(master_addr: String) -> Self {
         Cli { master_addr }
     }
+}
 
-    pub async fn entry(&self) {
+// TODO: gui와 공통된 부분 빼기
+impl interface::Interface for Cli {
+    async fn entry(&self) {
         match self.enter_group() {
             Some(_uuid) => {
                 // 이미 존재하는 그룹에 참가
