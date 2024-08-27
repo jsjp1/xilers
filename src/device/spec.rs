@@ -6,4 +6,5 @@ pub struct DeviceSpec {
     pub ip: String,
     pub os: String,
     pub os_version: String,
+    pub listen_port: String,
 }

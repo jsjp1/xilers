@@ -16,16 +16,19 @@ pub async fn get_device_manager(
 
     let manager_uuid = Uuid::parse_str(&path).unwrap();
 
-    let manager = client_group.get_device_manager(manager_uuid);
-    match manager {
-        Some(manager) => {
-            let serialized = serde_json::to_string(&manager)
-                .map_err(|e| e.to_string())
-                .unwrap();
-            Ok(HttpResponse::Ok().body(serialized))
+    let manager = match client_group.get_device_manager(manager_uuid) {
+        Some(manager) => manager,
+        None => {
+            log::warn!("해당하는 manager가 없습니다.");
+            return Ok(HttpResponse::NotFound().body("헤당하는 manager가 없습니다."));
         }
-        None => Ok(HttpResponse::NotFound().body("해당하는 manager가 없습니다.")),
-    }
+    };
+
+    let serialized_manager = serde_json::to_string(&manager)
+        .map_err(|e| e.to_string())
+        .unwrap();
+
+    Ok(HttpResponse::Ok().body(serialized_manager))
 }
 
 pub async fn get_device_spec(
@@ -55,11 +58,11 @@ pub async fn get_device_spec(
         }
     };
 
-    let serialized = serde_json::to_string(&spec)
+    let serialized_spec = serde_json::to_string(&spec)
         .map_err(|e| e.to_string())
         .unwrap();
 
-    Ok(HttpResponse::Ok().body(serialized))
+    Ok(HttpResponse::Ok().body(serialized_spec))
 }
 
 pub async fn get_device_fs(
@@ -89,9 +92,9 @@ pub async fn get_device_fs(
         }
     };
 
-    let serialized = serde_json::to_string(&fs)
+    let serialized_fs = serde_json::to_string(&fs)
         .map_err(|e| e.to_string())
         .unwrap();
 
-    Ok(HttpResponse::Ok().body(serialized))
+    Ok(HttpResponse::Ok().body(serialized_fs))
 }
