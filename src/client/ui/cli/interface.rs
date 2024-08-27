@@ -84,14 +84,14 @@ impl interface::Interface for Cli {
             let selected_device_fs = device_fs_map
                 .get(&device_fs_map.keys().nth(selected_num).unwrap())
                 .unwrap();
-            Cli::print_indent(indent, &format!("{:?}", selected_device_fs)); // TOOD:
+            Cli::print_indent(indent, &format!("{:?}", selected_device_fs)); // TODO: ui 만들기
         }
     }
 
     async fn register_device_fs(&self, manager_uuid: Uuid) -> Result<Uuid, ()> {
         println!("Group에 공유할 file system의 root를 지정해주세요.");
         println!("e.g. MacOSX : /Users/username/Desktop/public_dir");
-        println!("     Linux  : /home/username/Desktop/public_dir");
+        println!("     Linux  : /home/username/public_dir");
 
         print!("입력: ");
         io::stdout().flush().unwrap();

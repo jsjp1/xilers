@@ -5,11 +5,42 @@ use std::collections::VecDeque;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileNode {
     file_name: String,
     // is_file: bool, file_name 맨 뒤 '/'가 있으면 디렉토리, 아니면 파일로 구분
     children: Vec<FileNode>,
+}
+
+impl std::fmt::Debug for FileNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let mut deque: VecDeque<(FileNode, usize, usize)> = VecDeque::new();
+        deque.push_front((self.clone(), 0, 0));
+        let _ = write!(f, "\n");
+
+        while deque.is_empty() != true {
+            let opt = deque.pop_back().unwrap();
+            let file_node = opt.0;
+            let indent = opt.1;
+
+            let _ = write!(
+                f,
+                "{}{}\n",
+                " ".repeat((indent + 1) * 4),
+                file_node.file_name
+            );
+
+            let child = file_node.children;
+            for (idx, node) in child.iter().enumerate() {
+                if idx >= 7 {
+                    break;
+                }
+                deque.push_back((node.clone(), indent + 1, idx));
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl FileNode {
