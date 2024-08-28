@@ -14,6 +14,12 @@ use std::process;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
+enum ActionNum {
+    DeviceList = 0,
+    FileSystem,
+    FileTransfer,
+}
+
 pub struct Cli {
     master_addr: String,
     device_manager_uuid: Uuid,
@@ -28,6 +34,43 @@ impl Cli {
     fn println_indent(indent: usize, msg: &str) {
         println!("{}{}", " ".repeat(indent * 4), msg);
     }
+
+    fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
+        println!("");
+        let device_spec_map = &device_manager.id_spec_map;
+        let device_uuid_lst = device_spec_map.keys();
+
+        Cli::println_indent(indent, "Device 목록: ");
+
+        for (idx, uuid) in device_uuid_lst.clone().enumerate() {
+            let _spec = device_spec_map.get(uuid).unwrap();
+            Cli::println_indent(
+                indent + 1,
+                &format!("{}> {}({})_{}", idx, _spec.os, _spec.os_version, _spec.ip),
+            );
+        }
+        println!("");
+    }
+
+    fn render_file_system(&self, indent: usize, device_manager: &DeviceManager) {
+        println!("");
+        self.render_device_lst(indent, device_manager);
+        let device_fs_map = &device_manager.id_fs_map;
+
+        Cli::print_indent(indent, "\nFileSystem을 확인할 Device를 선택해주세요: ");
+        io::stdout().flush().unwrap();
+
+        let mut selected_device_uuid = String::new();
+        io::stdin().read_line(&mut selected_device_uuid).unwrap();
+        let selected_num: usize = selected_device_uuid.trim().parse().unwrap();
+        let selected_device_fs = device_fs_map
+            .get(&device_fs_map.keys().nth(selected_num).unwrap())
+            .unwrap();
+        Cli::print_indent(indent, &format!("{:?}", selected_device_fs));
+        println!("");
+    }
+
+    fn file_transfer() {} // network 모듈? interface 활용
 }
 
 // TODO: gui와 공통된 부분 빼기
@@ -56,38 +99,44 @@ impl interface::Interface for Cli {
     }
 
     fn render(&self, device_manager: &DeviceManager) {
-        let device_spec_map = &device_manager.id_spec_map;
-        let device_fs_map = &device_manager.id_fs_map;
-        let device_uuid_lst = device_spec_map.keys();
         let indent: usize = 0;
 
-        let term = Arc::new(AtomicBool::new(false));
-        signal_hook::flag::register(signal_hook::consts::SIGINT, Arc::clone(&term)).unwrap();
-        // loop {
-        while !term.load(Ordering::Relaxed) {
-            Cli::println_indent(indent, "Device 목록: ");
-
-            let mut selected_device_uuid = String::new();
-            for (idx, uuid) in device_uuid_lst.clone().enumerate() {
-                let _spec = device_spec_map.get(uuid).unwrap();
-                Cli::println_indent(
-                    indent + 1,
-                    &format!("{}> {}({})_{}", idx, _spec.os, _spec.os_version, _spec.ip),
-                );
-            }
-            Cli::print_indent(indent, "\nFileSystem을 확인할 Device를 선택해주세요: ");
+        loop {
+            Cli::println_indent(
+                indent + 1,
+                &format!("{}> {}", ActionNum::DeviceList as usize, "DeviceListCheck"),
+            );
+            Cli::println_indent(
+                indent + 1,
+                &format!("{}> {}", ActionNum::FileSystem as usize, "FileSystemCheck"),
+            );
+            Cli::println_indent(
+                indent + 1,
+                &format!("{}> {}", ActionNum::FileTransfer as usize, "FileTransfer"),
+            );
+            Cli::print_indent(indent, "동작을 선택해주세요: ");
             io::stdout().flush().unwrap();
+            let mut action_num: String = String::new();
+            io::stdin()
+                .read_line(&mut action_num)
+                .expect("입력에 실패했습니다.");
+            let action_num: usize = action_num.trim().parse().unwrap();
 
-            if term.load(Ordering::Relaxed) {
-                break;
+            Cli::println_indent(
+                indent,
+                "------------------------------------------------------",
+            );
+            if action_num == ActionNum::DeviceList as usize {
+                self.render_device_lst(indent + 1, device_manager);
+            } else if action_num == ActionNum::FileSystem as usize {
+                self.render_file_system(indent, device_manager)
+            } else if action_num == ActionNum::FileTransfer as usize {
+            } else {
             }
-
-            io::stdin().read_line(&mut selected_device_uuid).unwrap();
-            let selected_num: usize = selected_device_uuid.trim().parse().unwrap();
-            let selected_device_fs = device_fs_map
-                .get(&device_fs_map.keys().nth(selected_num).unwrap())
-                .unwrap();
-            Cli::print_indent(indent, &format!("{:?}", selected_device_fs));
+            Cli::println_indent(
+                indent,
+                "------------------------------------------------------",
+            );
         }
     }
 
