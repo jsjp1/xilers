@@ -45,9 +45,13 @@ pub async fn post_device_manager(master_addr: &str) -> Result<Uuid, reqwest::Err
 pub async fn post_device_spec(
     master_addr: &str,
     manager_uuid: Uuid,
+    new_spec_uuid: Uuid,
     spec: DeviceSpec,
 ) -> Result<Uuid, reqwest::Error> {
-    let request_addr = format!("{}/api/device-manager/{}/spec", master_addr, manager_uuid);
+    let request_addr = format!(
+        "{}/api/device-manager/{}/spec/{}",
+        master_addr, manager_uuid, new_spec_uuid
+    );
     let client = reqwest::Client::new();
 
     let serialized_spec = serde_json::to_string(&spec).unwrap();
@@ -56,18 +60,22 @@ pub async fn post_device_spec(
         Err(e) => return Err(e),
     };
 
-    let new_spec_uuid_str = request.text().await.unwrap();
-    let new_spec_uuid = Uuid::parse_str(&new_spec_uuid_str).unwrap();
+    let spec_uuid_str = request.text().await.unwrap();
+    let spec_uuid = Uuid::parse_str(&spec_uuid_str).unwrap();
 
-    Ok(new_spec_uuid)
+    Ok(spec_uuid)
 }
 
 pub async fn post_device_fs(
     master_addr: &str,
     manager_uuid: Uuid,
+    new_fs_uuid: Uuid,
     fs: FileSystem,
 ) -> Result<Uuid, reqwest::Error> {
-    let request_addr = format!("{}/api/device-manager/{}/fs", master_addr, manager_uuid);
+    let request_addr = format!(
+        "{}/api/device-manager/{}/fs/{}",
+        master_addr, manager_uuid, new_fs_uuid
+    );
     let client = reqwest::Client::new();
 
     let serialized_fs = serde_json::to_string(&fs).unwrap();
@@ -76,8 +84,8 @@ pub async fn post_device_fs(
         Err(e) => return Err(e),
     };
 
-    let new_fs_uuid_str = request.text().await.unwrap();
-    let new_fs_uuid = Uuid::parse_str(&new_fs_uuid_str).unwrap();
+    let fs_uuid_str = request.text().await.unwrap();
+    let fs_uuid = Uuid::parse_str(&fs_uuid_str).unwrap();
 
-    Ok(new_fs_uuid)
+    Ok(fs_uuid)
 }

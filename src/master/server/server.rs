@@ -90,11 +90,11 @@ impl Server {
                         web::post().to(api::post::add_device_manager),
                     )
                     .route(
-                        "/device-manager/{manager_uuid}/spec",
+                        "/device-manager/{manager_uuid}/spec/{device_uuid}",
                         web::post().to(api::post::add_device_spec),
                     )
                     .route(
-                        "/device-manager/{manager_uuid}/fs",
+                        "/device-manager/{manager_uuid}/fs/{device_uuid}",
                         web::post().to(api::post::add_device_fs),
                     )
                     .route(
