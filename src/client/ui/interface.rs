@@ -3,10 +3,12 @@ use uuid::Uuid;
 use super::request::DeviceManager;
 
 pub trait Interface {
-    async fn entry(&self);
-    async fn register_device_fs(&self, manager_uuid: Uuid) -> Result<Uuid, ()>;
-    async fn register_device_spec(&self, manager_uuid: Uuid) -> Result<Uuid, ()>;
-    fn enter_group(&self) -> Option<Uuid>;
-    async fn create_group(&self) -> Result<Uuid, ()>;
+    fn new(master_addr: String) -> Self;
+    async fn entry(&mut self);
+    fn exit(&self, error_opt: Option<String>);
     fn render(&self, device_manager: &DeviceManager);
+    async fn register_device_fs(&self, manager_uuid: Uuid);
+    async fn register_device_spec(&self, manager_uuid: Uuid);
+    async fn enter_group(&mut self);
+    async fn create_group(&mut self);
 }

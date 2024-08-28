@@ -22,15 +22,19 @@ impl std::fmt::Debug for FileNode {
             let opt = deque.pop_back().unwrap();
             let file_node = opt.0;
             let indent = opt.1;
-
-            let _ = write!(
-                f,
-                "{}{}\n",
-                " ".repeat((indent + 1) * 4),
-                file_node.file_name
-            );
-
             let child = file_node.children;
+
+            let formatted_str: String;
+            if child.len() >= 1 {
+                formatted_str =
+                    format!("{}{}/\n", " ".repeat((indent + 1) * 4), file_node.file_name);
+            } else {
+                formatted_str =
+                    format!("{}{}\n", " ".repeat((indent + 1) * 4), file_node.file_name);
+            }
+
+            let _ = write!(f, "{}", formatted_str);
+
             for (idx, node) in child.iter().enumerate() {
                 if idx >= 7 {
                     break;
@@ -39,7 +43,10 @@ impl std::fmt::Debug for FileNode {
             }
         }
 
-        Ok(())
+        write!(
+            f,
+            "------------------------------------------------------\n"
+        )
     }
 }
 
@@ -77,9 +84,16 @@ impl FileNode {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FileSystem {
     pub node: FileNode, // 결정된 root node
+}
+
+impl std::fmt::Debug for FileSystem {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let _ = write!(f, "------------------------------------------------------");
+        write!(f, "{:?}", self.node)
+    }
 }
 
 // TODO: unwrap 처리

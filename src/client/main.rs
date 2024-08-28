@@ -1,4 +1,7 @@
+use signal_hook::consts::SIGINT;
 use std::env;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 
 mod ui;
 use ui::cli::interface::Cli;
@@ -19,7 +22,7 @@ async fn main() {
     // TODO: ui 옵션 파싱 방식 변경
     if env::args().nth(1).unwrap() == "cli" {
         println!("CLI mode로 시작합니다.");
-        let cli = Cli::new(master_addr);
+        let mut cli: Cli = Interface::new(master_addr);
         cli.entry().await;
     } else if env::args().nth(1).unwrap() == "gui" {
         println!("GUI mode로 시작합니다.");
