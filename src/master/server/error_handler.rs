@@ -19,7 +19,6 @@ pub enum NotAbortError {
 pub struct ErrorHandler;
 
 impl ErrorHandler {
-    // request handler만으로부터 에러를 받아 처리하는 class
     pub fn process_error(e_type: ErrorType) {
         let current_time = Local::now().format("%H:%M").to_string();
 

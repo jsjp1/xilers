@@ -33,13 +33,13 @@ pub async fn add_device_manager(
 pub async fn add_device_spec(
     req: HttpRequest,
     data: web::Data<Mutex<server::server::AppState>>,
-    path: web::Path<String>,
+    path: web::Path<(String, String)>,
     spec: web::Bytes, // serialize된 spec
 ) -> Result<impl Responder> {
     let mut data_lock = data.lock().unwrap();
     let client_group = data_lock.client_group.borrow_mut();
 
-    let manager_uuid = Uuid::parse_str(&path).unwrap();
+    let manager_uuid = Uuid::parse_str(&path.0).unwrap();
     let manager = match client_group.get_device_manager(manager_uuid) {
         Some(manager) => manager,
         None => {
@@ -47,7 +47,7 @@ pub async fn add_device_spec(
         }
     };
 
-    let new_spec_uuid = Uuid::new_v4();
+    let new_spec_uuid = Uuid::parse_str(&path.1).unwrap();
     let mut spec: DeviceSpec = serde_json::from_slice(spec.as_ref()).unwrap();
     spec.ip = req.peer_addr().unwrap().ip().to_string();
 
@@ -59,13 +59,13 @@ pub async fn add_device_spec(
 
 pub async fn add_device_fs(
     data: web::Data<Mutex<server::server::AppState>>,
-    path: web::Path<String>,
+    path: web::Path<(String, String)>,
     fs: web::Bytes, // serialize된 fs
 ) -> Result<impl Responder> {
     let mut data_lock = data.lock().unwrap();
     let client_group = data_lock.client_group.borrow_mut();
 
-    let manager_uuid = Uuid::parse_str(&path).unwrap();
+    let manager_uuid = Uuid::parse_str(&path.0).unwrap();
     let manager = match client_group.get_device_manager(manager_uuid) {
         Some(manager) => manager,
         None => {
@@ -73,7 +73,7 @@ pub async fn add_device_fs(
         }
     };
 
-    let new_fs_uuid = Uuid::new_v4();
+    let new_fs_uuid = Uuid::parse_str(&path.1).unwrap();
     let fs: FileSystem = serde_json::from_slice(fs.as_ref()).unwrap();
 
     manager.add_device_fs(new_fs_uuid, fs.clone());
