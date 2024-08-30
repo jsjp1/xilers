@@ -89,3 +89,65 @@ pub async fn post_device_fs(
 
     Ok(fs_uuid)
 }
+
+pub async fn delete_device_manager(
+    master_addr: &str,
+    manager_uuid: Uuid,
+) -> Result<Uuid, reqwest::Error> {
+    let request_addr = format!("{}/api/device-manager/{}", master_addr, manager_uuid);
+    let client = reqwest::Client::new();
+
+    let request = match client.delete(request_addr).body("").send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e),
+    };
+
+    let manager_uuid_str = request.text().await.unwrap();
+    let manager_uuid = Uuid::parse_str(&manager_uuid_str).unwrap();
+
+    Ok(manager_uuid)
+}
+
+pub async fn delete_device_spec(
+    master_addr: &str,
+    manager_uuid: Uuid,
+    spec_uuid: Uuid,
+) -> Result<Uuid, reqwest::Error> {
+    let request_addr = format!(
+        "{}/api/device-manager/{}/spec/{}",
+        master_addr, manager_uuid, spec_uuid
+    );
+    let client = reqwest::Client::new();
+
+    let request = match client.delete(request_addr).body("").send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e),
+    };
+
+    let spec_uuid_str = request.text().await.unwrap();
+    let soec_uuid = Uuid::parse_str(&spec_uuid_str).unwrap();
+
+    Ok(soec_uuid)
+}
+
+pub async fn delete_device_fs(
+    master_addr: &str,
+    manager_uuid: Uuid,
+    fs_uuid: Uuid,
+) -> Result<Uuid, reqwest::Error> {
+    let request_addr = format!(
+        "{}/api/device-manager/{}/fs/{}",
+        master_addr, manager_uuid, fs_uuid
+    );
+    let client = reqwest::Client::new();
+
+    let request = match client.delete(request_addr).body("").send().await {
+        Ok(response) => response,
+        Err(e) => return Err(e),
+    };
+
+    let fs_uuid_str = request.text().await.unwrap();
+    let fs_uuid = Uuid::parse_str(&fs_uuid_str).unwrap();
+
+    Ok(fs_uuid)
+}

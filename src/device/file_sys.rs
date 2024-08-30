@@ -43,10 +43,7 @@ impl std::fmt::Debug for FileNode {
             }
         }
 
-        write!(
-            f,
-            "------------------------------------------------------\n"
-        )
+        Ok(())
     }
 }
 
@@ -91,7 +88,6 @@ pub struct FileSystem {
 
 impl std::fmt::Debug for FileSystem {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let _ = write!(f, "------------------------------------------------------");
         write!(f, "{:?}", self.node)
     }
 }

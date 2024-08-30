@@ -1,3 +1,7 @@
+use actix_web::web::delete;
+use std::process;
+use std::sync::mpsc::Receiver;
+use std::sync::{mpsc, Arc, Mutex};
 use std::{
     borrow::BorrowMut,
     io::{self, Write},
@@ -10,14 +14,26 @@ use super::super::request;
 use crate::ui::request::DeviceManager;
 use device::device::{file_sys::FileSystem, spec::DeviceSpec};
 
-use std::process;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-
+#[derive(Debug)]
 enum ActionNum {
     DeviceList = 0,
     FileSystem,
     FileTransfer,
+    Exit,
+}
+
+impl TryFrom<i32> for ActionNum {
+    type Error = ();
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ActionNum::DeviceList),
+            1 => Ok(ActionNum::FileSystem),
+            2 => Ok(ActionNum::FileTransfer),
+            3 => Ok(ActionNum::Exit),
+            _ => Err(()),
+        }
+    }
 }
 
 pub struct Cli {
@@ -33,6 +49,24 @@ impl Cli {
 
     fn println_indent(indent: usize, msg: &str) {
         println!("{}{}", " ".repeat(indent * 4), msg);
+    }
+
+    async fn sync_device_manager(&self, tx: std::sync::mpsc::Sender<DeviceManager>) {
+        let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+
+        let master_addr = self.master_addr.clone();
+        let device_manager_uuid = self.device_manager_uuid.clone();
+
+        let t = tokio::task::spawn(async move {
+            loop {
+                interval.tick().await;
+                let device_manager = request::get_device_manager(&master_addr, device_manager_uuid)
+                    .await
+                    .unwrap();
+
+                tx.send(device_manager).unwrap();
+            }
+        });
     }
 
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
@@ -62,6 +96,7 @@ impl Cli {
 
         let mut selected_device_uuid = String::new();
         io::stdin().read_line(&mut selected_device_uuid).unwrap();
+
         let selected_num: usize = selected_device_uuid.trim().parse().unwrap();
         let selected_device_fs = device_fs_map
             .get(&device_fs_map.keys().nth(selected_num).unwrap())
@@ -70,7 +105,7 @@ impl Cli {
         println!("");
     }
 
-    fn file_transfer() {} // network 모듈? interface 활용
+    fn render_file_transfer(&self, indent: usize, device_manager: &DeviceManager) {} // network 모듈? interface 활용
 }
 
 // TODO: gui와 공통된 부분 빼기
@@ -90,18 +125,31 @@ impl interface::Interface for Cli {
         self.register_device_spec(self.device_manager_uuid).await;
         self.register_device_fs(self.device_manager_uuid).await;
 
-        let device_manager =
+        let mut device_manager =
             request::get_device_manager(&self.master_addr, self.device_manager_uuid)
                 .await
                 .unwrap();
 
-        self.render(&device_manager);
+        self.render(&mut device_manager).await;
     }
 
-    fn render(&self, device_manager: &DeviceManager) {
+    async fn render(&self, device_manager: &mut DeviceManager) {
         let indent: usize = 0;
 
+        let (tx, rx) = mpsc::channel();
+        self.sync_device_manager(tx).await;
+
         loop {
+            match rx.recv() {
+                Ok(recv) => {
+                    let _ = std::mem::replace(device_manager, recv);
+                }
+                Err(_) => {
+                    println!("알 수 없는 오류가 발생했습니다. 프로그램을 종료합니다.");
+                    process::exit(-1);
+                }
+            }
+
             Cli::println_indent(
                 indent + 1,
                 &format!("{}> {}", ActionNum::DeviceList as usize, "DeviceListCheck"),
@@ -114,25 +162,32 @@ impl interface::Interface for Cli {
                 indent + 1,
                 &format!("{}> {}", ActionNum::FileTransfer as usize, "FileTransfer"),
             );
-            Cli::print_indent(indent, "동작을 선택해주세요: ");
+            Cli::println_indent(
+                indent + 1,
+                &format!("{}> {}", ActionNum::Exit as usize, "Exit"),
+            );
+
+            Cli::print_indent(indent, "\n동작을 선택해주세요: ");
             io::stdout().flush().unwrap();
+
             let mut action_num: String = String::new();
             io::stdin()
                 .read_line(&mut action_num)
                 .expect("입력에 실패했습니다.");
-            let action_num: usize = action_num.trim().parse().unwrap();
+            let action_num: i32 = action_num.trim().parse().unwrap();
 
             Cli::println_indent(
                 indent,
                 "------------------------------------------------------",
             );
-            if action_num == ActionNum::DeviceList as usize {
-                self.render_device_lst(indent + 1, device_manager);
-            } else if action_num == ActionNum::FileSystem as usize {
-                self.render_file_system(indent, device_manager)
-            } else if action_num == ActionNum::FileTransfer as usize {
-            } else {
-            }
+
+            match ActionNum::try_from(action_num).unwrap() {
+                ActionNum::DeviceList => self.render_device_lst(indent + 1, device_manager),
+                ActionNum::FileSystem => self.render_file_system(indent + 1, device_manager),
+                ActionNum::FileTransfer => self.render_file_transfer(indent + 1, device_manager),
+                ActionNum::Exit => self.exit(None).await,
+            };
+
             Cli::println_indent(
                 indent,
                 "------------------------------------------------------",
@@ -140,7 +195,34 @@ impl interface::Interface for Cli {
         }
     }
 
-    fn exit(&self, error_opt: Option<String>) {}
+    async fn exit(&self, error_opt: Option<String>) {
+        println!("프로그램을 종료합니다. {:?}", error_opt);
+
+        {
+            let deleted_device_uuid_spec = request::delete_device_spec(
+                &self.master_addr,
+                self.device_manager_uuid,
+                self.device_uuid,
+            )
+            .await;
+
+            let deleted_device_uuid_fs = request::delete_device_fs(
+                &self.master_addr,
+                self.device_manager_uuid,
+                self.device_uuid,
+            )
+            .await;
+
+            match (deleted_device_uuid_spec, deleted_device_uuid_fs) {
+                (Ok(uuid), Ok(_)) => {
+                    println!("Group에서 device를 제거하는데 성공했습니다: {}", uuid)
+                }
+                _ => println!("Device를 제거하는 과정에서 문제가 발생했습니다."),
+            }
+        }
+
+        process::exit(-1)
+    }
 
     async fn register_device_spec(&self, manager_uuid: Uuid) {
         println!("device의 정보를 master에 저장합니다.");

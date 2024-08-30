@@ -1,1 +1,3 @@
-pub struct FileNetwork {}
+pub trait NetworkInterface {
+    fn connect() -> Result<(), String>;
+}
