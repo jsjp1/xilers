@@ -11,25 +11,12 @@ use ui::interface::Interface;
 
 #[tokio::main]
 async fn main() {
-    // let master_ip = "http://xilers.jieeen.kr";
-    let master_ip = "http://127.0.0.1";
+    let master_ip = "http://xilers.jieeen.kr";
     let master_port = 8080;
     let listen_port = 8081;
     let file_storage = "/Users/jin/Desktop/test";
 
     let master_addr = format!("{}:{}", master_ip, master_port);
-
-    // let network: TCPNetwork = NetworkInterface::new(8082);
-    // let t = network.listener_init(); // 다른 스레드에서 처리
-    // let a = network.clone();
-    // let thread = std::thread::spawn(move || {
-    //     a.listen(t);
-    // });
-    // let mut stream = network.connect("127.0.0.1:8082".to_string());
-    // network.send_request(
-    //     &mut stream,
-    //     "/Users/jin/Desktop/prj/app/analysis_options.yaml".to_string(),
-    // );
 
     if env::args().len() == 1 {
         println!("usage: ./client [cli | gui]");
