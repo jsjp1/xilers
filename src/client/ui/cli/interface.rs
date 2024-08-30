@@ -1,6 +1,4 @@
-use actix_web::web::delete;
 use std::process;
-use std::sync::mpsc::Receiver;
 use std::sync::{mpsc, Arc, Mutex};
 use std::{
     borrow::BorrowMut,
@@ -51,22 +49,26 @@ impl Cli {
         println!("{}{}", " ".repeat(indent * 4), msg);
     }
 
-    async fn sync_device_manager(&self, tx: std::sync::mpsc::Sender<DeviceManager>) {
-        let mut interval = tokio::time::interval(std::time::Duration::from_millis(10));
+    async fn sync_device_manager(&self, device_manager: Arc<Mutex<DeviceManager>>) {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
 
         let master_addr = self.master_addr.clone();
         let device_manager_uuid = self.device_manager_uuid.clone();
 
-        let t = tokio::task::spawn(async move {
+        let thread_handle = tokio::task::spawn(async move {
             loop {
                 interval.tick().await;
-                let device_manager = request::get_device_manager(&master_addr, device_manager_uuid)
-                    .await
-                    .unwrap();
+                let _device_manager =
+                    request::get_device_manager(&master_addr, device_manager_uuid)
+                        .await
+                        .unwrap();
 
-                tx.send(device_manager).unwrap();
+                let mut device_manager_lock = device_manager.lock().unwrap();
+                let _ = std::mem::replace(&mut *device_manager_lock, _device_manager);
             }
         });
+
+        thread_handle.is_finished();
     }
 
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
@@ -125,31 +127,23 @@ impl interface::Interface for Cli {
         self.register_device_spec(self.device_manager_uuid).await;
         self.register_device_fs(self.device_manager_uuid).await;
 
-        let mut device_manager =
+        let device_manager =
             request::get_device_manager(&self.master_addr, self.device_manager_uuid)
                 .await
                 .unwrap();
 
-        self.render(&mut device_manager).await;
+        let a = Arc::new(Mutex::new(device_manager));
+
+        self.render(a).await;
     }
 
-    async fn render(&self, device_manager: &mut DeviceManager) {
+    async fn render(&self, device_manager: Arc<Mutex<DeviceManager>>) {
         let indent: usize = 0;
 
-        let (tx, rx) = mpsc::channel();
-        self.sync_device_manager(tx).await;
+        let device_manager_clone = Arc::clone(&device_manager);
+        self.sync_device_manager(device_manager_clone).await;
 
         loop {
-            match rx.recv() {
-                Ok(recv) => {
-                    let _ = std::mem::replace(device_manager, recv);
-                }
-                Err(_) => {
-                    println!("알 수 없는 오류가 발생했습니다. 프로그램을 종료합니다.");
-                    process::exit(-1);
-                }
-            }
-
             Cli::println_indent(
                 indent + 1,
                 &format!("{}> {}", ActionNum::DeviceList as usize, "DeviceListCheck"),
@@ -181,10 +175,13 @@ impl interface::Interface for Cli {
                 "------------------------------------------------------",
             );
 
+            let device_manager_lock = device_manager.lock().unwrap();
             match ActionNum::try_from(action_num).unwrap() {
-                ActionNum::DeviceList => self.render_device_lst(indent + 1, device_manager),
-                ActionNum::FileSystem => self.render_file_system(indent + 1, device_manager),
-                ActionNum::FileTransfer => self.render_file_transfer(indent + 1, device_manager),
+                ActionNum::DeviceList => self.render_device_lst(indent + 1, &device_manager_lock),
+                ActionNum::FileSystem => self.render_file_system(indent + 1, &device_manager_lock),
+                ActionNum::FileTransfer => {
+                    self.render_file_transfer(indent + 1, &device_manager_lock)
+                }
                 ActionNum::Exit => self.exit(None).await,
             };
 
@@ -220,7 +217,6 @@ impl interface::Interface for Cli {
                 _ => println!("Device를 제거하는 과정에서 문제가 발생했습니다."),
             }
         }
-
         process::exit(-1)
     }
 
