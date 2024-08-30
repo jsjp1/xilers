@@ -277,7 +277,7 @@ impl interface::Interface for Cli {
             ip: "".to_string(),
             os,
             os_version,
-            listen_port: "8081".to_string(), // 임시 값
+            listen_port: self.network.listen_port.to_string(),
         };
 
         match request::post_device_spec(&self.master_addr, manager_uuid, self.device_uuid, spec)

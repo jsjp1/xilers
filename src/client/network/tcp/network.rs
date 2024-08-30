@@ -4,7 +4,7 @@ use std::net::{TcpListener, TcpStream};
 #[derive(Clone)]
 pub struct TcpNetwork {
     // file transfer 요청을 받는 binding된 port
-    listen_port: u16,
+    pub listen_port: u16,
     file_storage: String,
 }
 
