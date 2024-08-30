@@ -8,7 +8,6 @@ use std::path::{Path, PathBuf};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FileNode {
     file_name: String,
-    // is_file: bool, file_name 맨 뒤 '/'가 있으면 디렉토리, 아니면 파일로 구분
     children: Vec<FileNode>,
 }
 
@@ -37,6 +36,7 @@ impl std::fmt::Debug for FileNode {
 
             for (idx, node) in child.iter().enumerate() {
                 if idx >= 7 {
+                    // 숫자 변경 필요
                     break;
                 }
                 deque.push_back((node.clone(), indent + 1, idx));
@@ -106,6 +106,7 @@ impl FileSystem {
     pub fn init_file_node(&mut self) {
         let file_name = self.node.file_name.clone();
         let root_path = Path::new(&file_name);
+
         FileSystem::build_tree(&mut self.node, root_path);
     }
 

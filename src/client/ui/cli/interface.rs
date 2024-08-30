@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use super::super::interface;
 use super::super::request;
+use crate::network::tcp::network::TcpNetwork;
 use crate::ui::request::DeviceManager;
 use device::device::{file_sys::FileSystem, spec::DeviceSpec};
 
@@ -38,6 +39,7 @@ pub struct Cli {
     master_addr: String,
     device_manager_uuid: Uuid,
     device_uuid: Uuid,
+    network: TcpNetwork,
 }
 
 impl Cli {
@@ -67,8 +69,6 @@ impl Cli {
                 let _ = std::mem::replace(&mut *device_manager_lock, _device_manager);
             }
         });
-
-        thread_handle.is_finished();
     }
 
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
@@ -107,20 +107,62 @@ impl Cli {
         println!("");
     }
 
-    fn render_file_transfer(&self, indent: usize, device_manager: &DeviceManager) {} // network 모듈? interface 활용
+    fn render_file_transfer(&self, indent: usize, device_manager: &DeviceManager) {
+        println!("");
+        self.render_device_lst(indent, device_manager);
+        let device_spec_map = &device_manager.id_spec_map;
+
+        Cli::print_indent(indent, "\nFileTransfer을 요청할 Device를 선택해주세요: ");
+        io::stdout().flush().unwrap();
+
+        let mut selected_device_uuid = String::new();
+        io::stdin().read_line(&mut selected_device_uuid).unwrap();
+
+        let selected_num: usize = selected_device_uuid.trim().parse().unwrap();
+        let selected_device_spec = device_spec_map
+            .get(&device_spec_map.keys().nth(selected_num).unwrap())
+            .unwrap();
+        let peer_ip = selected_device_spec.ip.clone();
+        let peer_port = selected_device_spec.listen_port.clone();
+        let peer_addr = format!("{}:{}", peer_ip, peer_port);
+
+        let mut stream = match self.network.connect(peer_addr) {
+            Ok(stream) => stream,
+            Err(e) => {
+                println!("Device와의 연결에 실패했습니다: {:?}", e.to_string());
+                return;
+            }
+        };
+
+        Cli::print_indent(indent, "\n전송받을 Filename(절대경로)을 작성해주세요: ");
+        io::stdout().flush().unwrap();
+
+        let mut request_file_name = String::new();
+        io::stdin().read_line(&mut request_file_name).unwrap();
+
+        self.network
+            .send_request(&mut stream, request_file_name.trim_end().to_string());
+    } // network 모듈? interface 활용
 }
 
 // TODO: gui와 공통된 부분 빼기
 impl interface::Interface for Cli {
-    fn new(master_addr: String) -> Self {
+    fn new(master_addr: String, listen_port: u16, file_storage: String) -> Self {
         Cli {
             master_addr,
             device_manager_uuid: Uuid::nil(),
             device_uuid: Uuid::new_v4(),
+            network: TcpNetwork::new(listen_port, file_storage),
         }
     }
 
     async fn entry(&mut self) {
+        let listener = self.network.listener_init();
+        let network_clone = self.network.clone();
+        let listen_thread = std::thread::spawn(move || {
+            network_clone.listen(listener);
+        });
+
         self.enter_group().await;
 
         println!("DeviceManager UUID: {}", self.device_manager_uuid);
@@ -131,10 +173,9 @@ impl interface::Interface for Cli {
             request::get_device_manager(&self.master_addr, self.device_manager_uuid)
                 .await
                 .unwrap();
+        let device_manager = Arc::new(Mutex::new(device_manager));
 
-        let a = Arc::new(Mutex::new(device_manager));
-
-        self.render(a).await;
+        self.render(device_manager).await;
     }
 
     async fn render(&self, device_manager: Arc<Mutex<DeviceManager>>) {
