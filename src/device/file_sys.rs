@@ -95,12 +95,34 @@ impl std::fmt::Debug for FileSystem {
 // TODO: unwrap 처리
 impl FileSystem {
     pub fn new(root_path: &mut str) -> Self {
-        let file_node = FileNode::new(root_path, true).expect(&format!(
-            "파일시스템 생성시 문제가 발생했습니다. root_path({:?})를 참고해주십시오.",
-            root_path
-        ));
+        // 운영체제에 따라 기본 root_path 설정
+        if FileNode::is_exist(root_path) != true {
+            println!(
+                "root_path: {:?}가 존재하지 않습니다. 운영체제별 Default path로 설정합니다.",
+                root_path
+            );
+            let default_root_path = match std::env::consts::OS {
+                "windows" => "C:\\Users\\Public",
+                "macos" => "/Users/Shared",
+                "linux" => "/home",
+                "android" => "/sdcard",
+                "ios" => "/var/mobile",
+                _ => panic!("지원하지 않는 운영체제입니다. 프로그램을 종료합니다."),
+            };
 
-        FileSystem { node: file_node }
+            let file_node = FileNode::new(default_root_path, true).expect(&format!(
+                "파일시스템 생성시 문제가 발생했습니다. root_path({:?})를 참고해주십시오.",
+                default_root_path
+            ));
+
+            FileSystem { node: file_node }
+        } else {
+            let file_node = FileNode::new(root_path, true).expect(&format!(
+                "파일시스템 생성시 문제가 발생했습니다. root_path({:?})를 참고해주십시오.",
+                root_path
+            ));
+            FileSystem { node: file_node }
+        }
     }
 
     pub fn init_file_node(&mut self) {

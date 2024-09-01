@@ -53,7 +53,6 @@ impl TcpNetwork {
                 Ok(mut stream) => {
                     let mut buf = [0u8; 1024];
                     let peer_device_request = stream.read(&mut buf).unwrap();
-
                     let peer_device_request_str =
                         std::str::from_utf8(&buf[..peer_device_request]).unwrap();
 
