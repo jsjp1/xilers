@@ -1,0 +1,7 @@
+[server]
+master_ip = "http://127.0.0.1"
+master_port = 8080
+
+[client]
+file_storage = "/tmp"
+listen_port = 8081
