@@ -19,18 +19,19 @@ enum ActionNum {
     FileSystem,
     FileTransfer,
     Exit,
+    Undefined,
 }
 
 impl TryFrom<i32> for ActionNum {
     type Error = ();
 
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
+    fn try_from(value: i32) -> Result<Self, ()> {
         match value {
             0 => Ok(ActionNum::DeviceList),
             1 => Ok(ActionNum::FileSystem),
             2 => Ok(ActionNum::FileTransfer),
             3 => Ok(ActionNum::Exit),
-            _ => Err(()),
+            _ => Ok(ActionNum::Undefined),
         }
     }
 }
@@ -224,6 +225,9 @@ impl interface::Interface for Cli {
                     self.render_file_transfer(indent + 1, &device_manager_lock)
                 }
                 ActionNum::Exit => self.exit(None).await,
+                ActionNum::Undefined => {
+                    Cli::println_indent(indent+1, "정의되지 않은 동작입니다.");
+                }
             };
 
             Cli::println_indent(
