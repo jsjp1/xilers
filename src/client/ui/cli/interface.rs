@@ -73,7 +73,6 @@ impl Cli {
     }
 
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
-        println!("");
         let device_spec_map = &device_manager.id_spec_map;
         let device_uuid_lst = device_spec_map.keys();
 
@@ -86,11 +85,9 @@ impl Cli {
                 &format!("{}> {}({})_{}", idx, _spec.os, _spec.os_version, _spec.ip),
             );
         }
-        println!("");
     }
 
     fn render_file_system(&self, indent: usize, device_manager: &DeviceManager) {
-        println!("");
         self.render_device_lst(indent, device_manager);
         let device_fs_map = &device_manager.id_fs_map;
 
@@ -105,11 +102,9 @@ impl Cli {
             .get(&device_fs_map.keys().nth(selected_num).unwrap())
             .unwrap();
         Cli::print_indent(indent, &format!("{:?}", selected_device_fs));
-        println!("");
     }
 
     fn render_file_transfer(&self, indent: usize, device_manager: &DeviceManager) {
-        println!("");
         self.render_device_lst(indent, device_manager);
         let device_spec_map = &device_manager.id_spec_map;
 
@@ -210,8 +205,21 @@ impl interface::Interface for Cli {
             io::stdin()
                 .read_line(&mut action_num)
                 .expect("입력에 실패했습니다.");
-            let action_num: i32 = action_num.trim().parse().unwrap();
-
+            let action_num: i32 = match action_num.trim().parse() {
+                Ok(action_num) => action_num,
+                Err(e) => {
+                    Cli::println_indent(
+                        indent,
+                        "------------------------------------------------------",
+                    );
+                    Cli::println_indent(indent, &format!("숫자가 아닌 값을 입력했습니다: {}", e.to_string()));
+                    Cli::println_indent(
+                        indent,
+                        "------------------------------------------------------",
+                    );
+                    continue;
+                }
+            };
             Cli::println_indent(
                 indent,
                 "------------------------------------------------------",
@@ -226,7 +234,7 @@ impl interface::Interface for Cli {
                 }
                 ActionNum::Exit => self.exit(None).await,
                 ActionNum::Undefined => {
-                    Cli::println_indent(indent+1, "정의되지 않은 동작입니다.");
+                    Cli::println_indent(indent, "정의되지 않은 동작입니다.");
                 }
             };
 
