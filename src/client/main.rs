@@ -6,6 +6,7 @@ mod ui;
 
 use config::{ClientConfig, Config, ServerConfig};
 use ui::cli::interface::Cli;
+use ui::gui::interface::Gui;
 use ui::interface::Interface;
 
 #[tokio::main]
@@ -53,8 +54,12 @@ async fn main() {
         cli.entry().await;
     } else if env::args().nth(1).unwrap() == "gui" {
         println!("GUI mode로 시작합니다.");
-        // let gui = Gui::new(master_addr);
-        // gui.entry();
+        let mut gui = Gui::new(
+            master_addr,
+            config_content.client.listen_port,
+            config_content.client.file_storage.to_string(),
+        );
+        gui.entry().await;
     } else {
         println!("usage: ./client [cli | gui]");
         return;

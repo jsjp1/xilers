@@ -23,6 +23,11 @@ signal-hook = "0.3"
 version = "1.10.0"
 features = ["v4", "fast-rng", "macro-diagnostics"]
 
+[dependencies.iced]
+features = ["palette", "tokio", "wgpu", "tiny-skia"]
+git = "https://github.com/hecrj/iced.git"
+rev = "0b459c8e240abf83bb62902a504c018194acdbb6"
+
 [lib]
 name = "device"
 path = "src/mod.rs"
