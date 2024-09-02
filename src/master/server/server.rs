@@ -29,13 +29,8 @@ impl ClientGroup {
         }
     }
 
-    // TODO: Option형으로 변경
     pub fn get_device_manager(&mut self, id: Uuid) -> Option<&mut DeviceManager> {
         let device_manager_opt = self.client_group.get_mut(&id);
-        // match device_manager_opt {
-        //     Some(manager) => Ok(Some(manager)),
-        //     None => Ok(None),
-        // }
         device_manager_opt
     }
 

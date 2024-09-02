@@ -74,11 +74,12 @@ impl Cli {
 
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
         let device_spec_map = &device_manager.id_spec_map;
-        let device_uuid_lst = device_spec_map.keys();
+        let mut device_uuid_lst: Vec<_> = device_spec_map.keys().collect();
+        device_uuid_lst.sort();
 
         Cli::println_indent(indent, "Device 목록: ");
 
-        for (idx, uuid) in device_uuid_lst.clone().enumerate() {
+        for (idx, uuid) in device_uuid_lst.iter().enumerate() {
             let _spec = device_spec_map.get(uuid).unwrap();
             Cli::println_indent(
                 indent + 1,
@@ -212,7 +213,10 @@ impl interface::Interface for Cli {
                         indent,
                         "------------------------------------------------------",
                     );
-                    Cli::println_indent(indent, &format!("숫자가 아닌 값을 입력했습니다: {}", e.to_string()));
+                    Cli::println_indent(
+                        indent,
+                        &format!("숫자가 아닌 값을 입력했습니다: {}", e.to_string()),
+                    );
                     Cli::println_indent(
                         indent,
                         "------------------------------------------------------",

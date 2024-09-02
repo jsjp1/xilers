@@ -34,13 +34,13 @@ impl TcpNetwork {
         let mut buf = [0u8; 16384];
         let y = tcp_stream.read(&mut buf).unwrap();
 
-        self.save_file(&buf[..y]);
+        self.save_file(&buf[..y], file_name);
     }
 
-    fn save_file(&self, buffer: &[u8]) {
+    fn save_file(&self, buffer: &[u8], file_name: String) {
         // TODO: 파일명과 관련해 추가 작업 필요 (저장)
         let payload_bytes = buffer;
-        let x = format!("{}/{}", &self.file_storage, "a.yaml".to_string());
+        let x = format!("{}/{}", &self.file_storage, file_name);
         let mut created_file =
             std::fs::File::create(x).expect("파일 경로를 확인해주시기 바랍니다.");
         created_file.write(payload_bytes).unwrap();
