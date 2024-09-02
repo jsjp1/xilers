@@ -1,3 +1,5 @@
+use std::fmt::Display;
+use std::panic;
 use std::process;
 use std::sync::{mpsc, Arc, Mutex};
 use std::{
@@ -22,6 +24,30 @@ enum ActionNum {
     Undefined,
 }
 
+impl ActionNum {
+    fn iter() -> std::slice::Iter<'static, ActionNum> {
+        static ACTIONS: [ActionNum; 4] = [
+            ActionNum::DeviceList,
+            ActionNum::FileSystem,
+            ActionNum::FileTransfer,
+            ActionNum::Exit,
+        ];
+        ACTIONS.iter()
+    }
+}
+
+impl std::fmt::Display for ActionNum {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match *self {
+            ActionNum::DeviceList => write!(f, "DeviceList"),
+            ActionNum::FileSystem => write!(f, "FileSystem"),
+            ActionNum::FileTransfer => write!(f, "FileTransfer"),
+            ActionNum::Exit => write!(f, "Exit"),
+            ActionNum::Undefined => write!(f, "Undefined"),
+        }
+    }
+}
+
 impl TryFrom<i32> for ActionNum {
     type Error = ();
 
@@ -36,6 +62,7 @@ impl TryFrom<i32> for ActionNum {
     }
 }
 
+#[derive(Clone)]
 pub struct Cli {
     master_addr: String,
     device_manager_uuid: Uuid,
@@ -72,6 +99,12 @@ impl Cli {
         });
     }
 
+    fn render_menu(indent: usize) {
+        for (idx, action) in ActionNum::iter().enumerate() {
+            Cli::println_indent(indent + 1, &format!("{}> {}", idx, action));
+        }
+    }
+
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
         let device_spec_map = &device_manager.id_spec_map;
         let device_uuid_lst: Vec<_> = device_spec_map.keys().collect();
@@ -97,7 +130,14 @@ impl Cli {
         let mut selected_device_uuid = String::new();
         io::stdin().read_line(&mut selected_device_uuid).unwrap();
 
-        let selected_num: usize = selected_device_uuid.trim().parse().unwrap();
+        let selected_num: usize = match selected_device_uuid.trim().parse() {
+            Ok(num) => num,
+            Err(e) => {
+                println!("숫자가 아닌 값을 입력했습니다: {}", e.to_string());
+                return;
+            }
+        };
+
         let selected_device_fs = device_fs_map
             .get(&device_fs_map.keys().nth(selected_num).unwrap())
             .unwrap();
@@ -181,22 +221,7 @@ impl interface::Interface for Cli {
         self.sync_device_manager(device_manager_clone).await;
 
         loop {
-            Cli::println_indent(
-                indent + 1,
-                &format!("{}> {}", ActionNum::DeviceList as usize, "DeviceListCheck"),
-            );
-            Cli::println_indent(
-                indent + 1,
-                &format!("{}> {}", ActionNum::FileSystem as usize, "FileSystemCheck"),
-            );
-            Cli::println_indent(
-                indent + 1,
-                &format!("{}> {}", ActionNum::FileTransfer as usize, "FileTransfer"),
-            );
-            Cli::println_indent(
-                indent + 1,
-                &format!("{}> {}", ActionNum::Exit as usize, "Exit"),
-            );
+            Cli::render_menu(indent);
 
             Cli::print_indent(indent, "\n동작을 선택해주세요: ");
             io::stdout().flush().unwrap();
@@ -248,7 +273,7 @@ impl interface::Interface for Cli {
         }
     }
 
-    async fn exit(&self, error_opt: Option<String>) {
+    async fn exit(&self, error_opt: Option<String>) -> ! {
         println!("프로그램을 종료합니다. {:?}", error_opt);
 
         {
