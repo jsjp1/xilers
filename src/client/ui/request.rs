@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 use device::device::{file_sys::FileSystem, spec::DeviceSpec};
 
@@ -8,8 +8,8 @@ use uuid::Uuid;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DeviceManager {
-    pub id_spec_map: HashMap<Uuid, DeviceSpec>,
-    pub id_fs_map: HashMap<Uuid, FileSystem>,
+    pub id_spec_map: BTreeMap<Uuid, DeviceSpec>,
+    pub id_fs_map: BTreeMap<Uuid, FileSystem>,
 }
 
 pub async fn get_device_manager(
