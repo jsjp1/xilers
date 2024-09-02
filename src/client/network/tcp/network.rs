@@ -32,7 +32,7 @@ impl TcpNetwork {
         tcp_stream.write_all(file_name.as_bytes()).unwrap();
         tcp_stream.flush().unwrap();
 
-        let mut buf = [0u8; 16384];
+        let mut buf = [0u8; 1024];
         let sz = tcp_stream.read(&mut buf).unwrap();
 
         self.save_file(&buf[..sz], file_name);
