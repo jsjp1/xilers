@@ -8,6 +8,7 @@ pub struct TcpNetwork {
     file_storage: String,
 }
 
+// TODO: unwrap 처리
 impl TcpNetwork {
     pub fn new(listen_port: u16, file_storage: String) -> Self {
         TcpNetwork {
@@ -32,17 +33,29 @@ impl TcpNetwork {
         tcp_stream.flush().unwrap();
 
         let mut buf = [0u8; 16384];
-        let y = tcp_stream.read(&mut buf).unwrap();
+        let sz = tcp_stream.read(&mut buf).unwrap();
 
-        self.save_file(&buf[..y], file_name);
+        self.save_file(&buf[..sz], file_name);
     }
 
     fn save_file(&self, buffer: &[u8], file_name: String) {
         // TODO: 파일명과 관련해 추가 작업 필요 (저장)
         let payload_bytes = buffer;
-        let x = format!("{}/{}", &self.file_storage, file_name);
-        let mut created_file =
-            std::fs::File::create(x).expect("파일 경로를 확인해주시기 바랍니다.");
+        let path_file_name = std::path::Path::new(&file_name)
+            .file_name()
+            .unwrap()
+            .to_str()
+            .unwrap();
+
+        let abs_file_path = format!("{}/{}", &self.file_storage, path_file_name);
+        let mut created_file = match std::fs::File::create(&abs_file_path) {
+            Ok(file) => file,
+            Err(_) => {
+                println!("파일 경로를 확인해주시기 바랍니다: {}", abs_file_path);
+                return;
+            }
+        };
+
         created_file.write(payload_bytes).unwrap();
         created_file.flush().unwrap();
     }
