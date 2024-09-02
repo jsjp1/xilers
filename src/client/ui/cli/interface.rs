@@ -1,5 +1,3 @@
-use std::fmt::Display;
-use std::panic;
 use std::process;
 use std::sync::{mpsc, Arc, Mutex};
 use std::{
@@ -11,56 +9,10 @@ use uuid::Uuid;
 
 use super::super::interface;
 use super::super::request;
+use super::action;
 use crate::network::tcp::network::TcpNetwork;
 use crate::ui::request::DeviceManager;
 use device::device::{file_sys::FileSystem, spec::DeviceSpec};
-
-#[derive(Debug)]
-enum ActionNum {
-    DeviceList = 0,
-    FileSystem,
-    FileTransfer,
-    Exit,
-    Undefined,
-}
-
-impl ActionNum {
-    fn iter() -> std::slice::Iter<'static, ActionNum> {
-        static ACTIONS: [ActionNum; 4] = [
-            ActionNum::DeviceList,
-            ActionNum::FileSystem,
-            ActionNum::FileTransfer,
-            ActionNum::Exit,
-        ];
-        ACTIONS.iter()
-    }
-}
-
-impl std::fmt::Display for ActionNum {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        match *self {
-            ActionNum::DeviceList => write!(f, "DeviceList"),
-            ActionNum::FileSystem => write!(f, "FileSystem"),
-            ActionNum::FileTransfer => write!(f, "FileTransfer"),
-            ActionNum::Exit => write!(f, "Exit"),
-            ActionNum::Undefined => write!(f, "Undefined"),
-        }
-    }
-}
-
-impl TryFrom<i32> for ActionNum {
-    type Error = ();
-
-    fn try_from(value: i32) -> Result<Self, ()> {
-        match value {
-            0 => Ok(ActionNum::DeviceList),
-            1 => Ok(ActionNum::FileSystem),
-            2 => Ok(ActionNum::FileTransfer),
-            3 => Ok(ActionNum::Exit),
-            _ => Ok(ActionNum::Undefined),
-        }
-    }
-}
 
 #[derive(Clone)]
 pub struct Cli {
@@ -100,7 +52,7 @@ impl Cli {
     }
 
     fn render_menu(indent: usize) {
-        for (idx, action) in ActionNum::iter().enumerate() {
+        for (idx, action) in action::ActionNum::iter().enumerate() {
             Cli::println_indent(indent + 1, &format!("{}> {}", idx, action));
         }
     }
@@ -254,14 +206,18 @@ impl interface::Interface for Cli {
             );
 
             let device_manager_lock = device_manager.lock().unwrap();
-            match ActionNum::try_from(action_num).unwrap() {
-                ActionNum::DeviceList => self.render_device_lst(indent + 1, &device_manager_lock),
-                ActionNum::FileSystem => self.render_file_system(indent + 1, &device_manager_lock),
-                ActionNum::FileTransfer => {
+            match action::ActionNum::try_from(action_num).unwrap() {
+                action::ActionNum::DeviceList => {
+                    self.render_device_lst(indent + 1, &device_manager_lock)
+                }
+                action::ActionNum::FileSystem => {
+                    self.render_file_system(indent + 1, &device_manager_lock)
+                }
+                action::ActionNum::FileTransfer => {
                     self.render_file_transfer(indent + 1, &device_manager_lock)
                 }
-                ActionNum::Exit => self.exit(None).await,
-                ActionNum::Undefined => {
+                action::ActionNum::Exit => self.exit(None).await,
+                action::ActionNum::Undefined => {
                     Cli::println_indent(indent, "정의되지 않은 동작입니다.");
                 }
             };
