@@ -74,8 +74,7 @@ impl Cli {
 
     fn render_device_lst(&self, indent: usize, device_manager: &DeviceManager) {
         let device_spec_map = &device_manager.id_spec_map;
-        let mut device_uuid_lst: Vec<_> = device_spec_map.keys().collect();
-        device_uuid_lst.sort();
+        let device_uuid_lst: Vec<_> = device_spec_map.keys().collect();
 
         Cli::println_indent(indent, "Device 목록: ");
 

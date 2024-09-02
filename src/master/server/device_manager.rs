@@ -2,22 +2,22 @@ use device::device::file_sys::FileSystem;
 use device::device::spec::DeviceSpec;
 use serde::{Deserialize, Serialize};
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 use uuid::Uuid;
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct DeviceManager {
     // 각 client group(device들의 모임)마다 하나씩 존재
     // spec을 가리키는 id와 fs를 가리키는 id가 동일해야 됨 (client의 고유 id)
-    id_spec_map: HashMap<Uuid, DeviceSpec>,
-    id_fs_map: HashMap<Uuid, FileSystem>,
+    id_spec_map: BTreeMap<Uuid, DeviceSpec>,
+    id_fs_map: BTreeMap<Uuid, FileSystem>,
 }
 
 impl DeviceManager {
     pub fn new() -> Self {
         DeviceManager {
-            id_spec_map: HashMap::new(),
-            id_fs_map: HashMap::new(),
+            id_spec_map: BTreeMap::new(),
+            id_fs_map: BTreeMap::new(),
         }
     }
 
