@@ -10,13 +10,14 @@ fn main() {
     ErrorHandler::create_error_log_dir();
 
     let server = Server::new("0.0.0.0".to_string(), 8080, "127.0.0.1".to_string(), 27017);
+    let worker_num: usize = 4;
 
     loop {
         let (tx, rx) = mpsc::channel();
-        let server_clone = server.clone();
+        let mut server_clone = server.clone();
 
         let t = thread::spawn(move || {
-            let server_future = server_clone.init_and_run(tx);
+            let server_future = server_clone.init_and_run(worker_num, tx);
             rt::System::new().block_on(server_future)
         });
 

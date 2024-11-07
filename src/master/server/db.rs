@@ -4,18 +4,14 @@ use std::future::IntoFuture;
 use mongodb::bson::{doc, Document};
 use mongodb::{options::ClientOptions, Client};
 
-pub struct MongoDB {
-    ip: String,
-    port: u16,
-}
+#[derive(Clone, Debug)]
+pub struct MongoDB;
 
 impl MongoDB {
-    pub fn new(ip: String, port: u16) -> Self {
-        MongoDB { ip, port }
-    }
+    pub async fn connect_mongodb(db_ip: String, db_port: u16) -> Result<Client, String> {
+        log::info!("Mongodb에 연결합니다.");
 
-    pub async fn connect_mongodb(&self) -> Result<Client, String> {
-        let mongodb_uri = format!("mongodb://{}:{}", self.ip, self.port);
+        let mongodb_uri = format!("mongodb://{}:{}", db_ip, db_port);
         let _client_options = match ClientOptions::parse(mongodb_uri).await {
             Ok(client_options) => client_options,
             Err(e) => {
@@ -31,7 +27,12 @@ impl MongoDB {
     }
 
     pub async fn create_collection(client: &Client, db_name: &str, coll_name: &str) {
-        log::debug!("Mongdb의 Collection을 생성합니다.");
+        log::debug!(
+            "Mongdb의 Collection을 생성합니다. {}: {}",
+            db_name,
+            coll_name
+        );
+
         let _db = client.database(db_name);
         let res = _db.create_collection(coll_name).await;
 

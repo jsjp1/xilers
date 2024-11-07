@@ -1,20 +1,25 @@
-use crate::server::error_handler::NotAbortError;
-
-use super::api;
-use super::error_handler::{ErrorHandler, ErrorType};
-use std::borrow::Borrow;
+use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
 use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::{sync::mpsc, time};
 
-use super::device_manager::DeviceManager;
+use actix::prelude::*;
 use actix_web::Responder;
 use actix_web::{dev::ServerHandle, middleware, rt, web, App, HttpRequest, HttpServer};
+use mongodb::bson::doc;
 use uuid::Uuid;
+
+use super::api;
+use super::db::{self, MongoDB};
+use super::device_manager::DeviceManager;
+use super::error_handler::{ErrorHandler, ErrorType};
+use super::ws::{connection::start_connection, lobby::ClientGroupWs};
+use crate::server::error_handler::NotAbortError;
 
 pub struct AppState {
     pub client_group: ClientGroup,
+    pub ws_server: Addr<ClientGroupWs>,
 }
 
 #[derive(Clone, Debug)]
@@ -49,14 +54,17 @@ impl ClientGroup {
             None => false,
         }
     }
+
+    pub fn add_device_manager_ws(&mut self, id: Uuid, device_manager: DeviceManager) {}
 }
 
 #[derive(Clone, Debug)]
 pub struct Server {
     pub ip: String,
     pub port: u16,
-    pub db_ip: String,
-    pub db_port: u16,
+    db_client: Option<mongodb::Client>,
+    db_ip: String,
+    db_port: u16,
     pub client_group: ClientGroup,
 }
 
@@ -66,60 +74,87 @@ impl Server {
         Server {
             ip,
             port,
+            db_client: None,
             db_ip,
             db_port,
             client_group: ClientGroup::new(),
         }
     }
 
-    pub async fn init_and_run(&self, tx: mpsc::Sender<ServerHandle>) -> std::io::Result<()> {
+    async fn init_db(&mut self) {
+        self.db_client = Some(
+            MongoDB::connect_mongodb(self.db_ip.clone(), self.db_port)
+                .await
+                .unwrap(),
+        );
+        let client = self.db_client.as_ref().unwrap();
+
+        MongoDB::create_collection(&client, "xilers", "device_manager").await;
+        MongoDB::create_collection(&client, "xilers", "device_spec").await;
+        MongoDB::create_collection(&client, "xilers", "device_fs").await;
+    }
+
+    pub async fn init_and_run(
+        &mut self,
+        worker_num: usize,
+        tx: mpsc::Sender<ServerHandle>,
+    ) -> std::io::Result<()> {
         let app_state = web::Data::new(Mutex::new(AppState {
             client_group: self.client_group.clone(),
+            ws_server: ClientGroupWs::new().start(),
         }));
 
+        self.init_db().await;
+
         let server = HttpServer::new(move || {
-            App::new().app_data(app_state.clone()).service(
-                web::scope("/api")
-                    .route(
-                        "/device-manager",
-                        web::post().to(api::post::add_device_manager),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}/spec/{device_uuid}",
-                        web::post().to(api::post::add_device_spec),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}/fs/{device_uuid}",
-                        web::post().to(api::post::add_device_fs),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}",
-                        web::get().to(api::get::get_device_manager),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}/spec/{spec_uuid}",
-                        web::get().to(api::get::get_device_spec),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}/fs/{fs_uuid}",
-                        web::get().to(api::get::get_device_fs),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}",
-                        web::delete().to(api::delete::delete_device_manager),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}/spec/{spec_uuid}",
-                        web::delete().to(api::delete::delete_device_spec),
-                    )
-                    .route(
-                        "/device-manager/{manager_uuid}/fs/{fs_uuid}",
-                        web::delete().to(api::delete::delete_device_fs),
-                    ),
-            )
+            App::new()
+                .app_data(app_state.clone())
+                .service(
+                    web::scope("/ws")
+                        .route("/{group_id}/{device_id}", web::get().to(start_connection)),
+                )
+                .service(
+                    web::scope("/api")
+                        .route(
+                            "/device-manager",
+                            web::post().to(api::post::add_device_manager),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}/spec/{device_uuid}",
+                            web::post().to(api::post::add_device_spec),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}/fs/{device_uuid}",
+                            web::post().to(api::post::add_device_fs),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}",
+                            web::get().to(api::get::get_device_manager),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}/spec/{spec_uuid}",
+                            web::get().to(api::get::get_device_spec),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}/fs/{fs_uuid}",
+                            web::get().to(api::get::get_device_fs),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}",
+                            web::delete().to(api::delete::delete_device_manager),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}/spec/{spec_uuid}",
+                            web::delete().to(api::delete::delete_device_spec),
+                        )
+                        .route(
+                            "/device-manager/{manager_uuid}/fs/{fs_uuid}",
+                            web::delete().to(api::delete::delete_device_fs),
+                        ),
+                )
         })
         .bind((self.ip.clone(), self.port))?
-        .workers(10)
+        .workers(worker_num)
         .run();
 
         let _ = tx.send(server.handle());

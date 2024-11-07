@@ -12,7 +12,9 @@ mongodb = "3.0.1"
 tokio = { version = "1.39.2", features = ["full"] }
 chrono = "0.4"
 regex = "1"
+actix-web-actors = "4"
 actix-web = "4"
+actix = "0.13"
 toml = "0.8.19"
 
 # client

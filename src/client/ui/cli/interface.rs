@@ -32,6 +32,7 @@ impl Cli {
     }
 
     async fn sync_device_manager(&self, device_manager: Arc<Mutex<DeviceManager>>) {
+        // TODO: websocket을 통해 전달받은 device:uuid 에 해당하는 spec과 fs 업데이트
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
 
         let master_addr = self.master_addr.clone();
@@ -152,6 +153,8 @@ impl interface::Interface for Cli {
         });
 
         self.enter_group().await;
+        // TODO: self.device_manager_uuid가 업데이트되는데, 이 uuid와 device의 uuid(spec | fs)를 websocket에 전달
+        // TODO: websocket에서 진행하는 등록은 socket등록이지, clientGroup객체에의 등록이 아님 -> 아래 과정도 진행해야됨
 
         println!("DeviceManager UUID: {}", self.device_manager_uuid);
         self.register_device_spec(self.device_manager_uuid).await;

@@ -22,7 +22,7 @@ async fn main() {
             );
             Config {
                 server: ServerConfig {
-                    master_ip: String::from("127.0.0.1"),
+                    master_ip: String::from("http://127.0.0.1"),
                     master_port: 8080,
                 },
                 client: ClientConfig {
