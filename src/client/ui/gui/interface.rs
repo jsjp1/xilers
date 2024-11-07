@@ -35,8 +35,12 @@ impl interface::Interface for Gui {
         process::exit(-1);
     }
     async fn render(&self, device_manager: Arc<Mutex<DeviceManager>>) {}
-    async fn register_device_fs(&self, manager_uuid: Uuid) {}
-    async fn register_device_spec(&self, manager_uuid: Uuid) {}
+    async fn register_device_fs(&self, manager_uuid: Uuid) -> Uuid {
+        Uuid::nil()
+    }
+    async fn register_device_spec(&self, manager_uuid: Uuid) -> Uuid {
+        Uuid::nil()
+    }
     async fn enter_group(&mut self) {}
     async fn create_group(&mut self) {}
 }

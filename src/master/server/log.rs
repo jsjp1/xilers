@@ -20,7 +20,7 @@ impl log::Log for Logger {
             if record.metadata().level() == Level::Debug {
                 println!(
                     "[{}]({}:{}): {}",
-                    record.level().to_string().blue(),
+                    record.level().to_string().bright_blue(),
                     record.file().unwrap(),
                     record.line().unwrap(),
                     record.args(),
@@ -36,7 +36,11 @@ impl log::Log for Logger {
                     record.args(),
                 );
             } else {
-                println!("[{}]: {}", record.level().to_string().blue(), record.args(),);
+                println!(
+                    "[{}]: {}",
+                    record.level().to_string().bright_blue(),
+                    record.args(),
+                );
             }
         }
     }

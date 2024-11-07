@@ -1,6 +1,6 @@
 # xilers
 
-A distributed file system written in Rust with cross-platform support.
+A distributed file system written in Rust with cross-platform support.
 
 ## Table of Contents
 

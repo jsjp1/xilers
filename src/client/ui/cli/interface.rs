@@ -1,4 +1,6 @@
 use colored::Colorize;
+use iced::futures::{SinkExt, StreamExt};
+use reqwest::Url;
 use std::process;
 use std::sync::{mpsc, Arc, Mutex};
 use std::{
@@ -6,6 +8,7 @@ use std::{
     io::{self, Write},
 };
 use sysinfo::{System, SystemExt};
+use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
 use super::super::interface;
@@ -165,11 +168,27 @@ impl interface::Interface for Cli {
         // TODO: websocket에서 진행하는 등록은 socket등록이지, clientGroup객체에의 등록이 아님 -> 아래 과정도 진행해야됨
 
         println!(
-            "DeviceManager UUID: {}",
+            "{} UUID: {}",
+            "DeviceManager".bold(),
             self.device_manager_uuid.to_string().yellow().bold()
         );
-        self.register_device_spec(self.device_manager_uuid).await;
-        self.register_device_fs(self.device_manager_uuid).await;
+        let spec_uuid = self.register_device_spec(self.device_manager_uuid).await;
+        let _ = self.register_device_fs(self.device_manager_uuid).await;
+
+        let websocket_url = Url::parse(&format!(
+            "ws://{}/ws/{}/{}",
+            self.master_addr.strip_prefix("http://").unwrap(),
+            self.device_manager_uuid,
+            spec_uuid
+        ))
+        .expect("올바르지 못한 URL입니다.");
+
+        let (ws_stream, _res) = connect_async(websocket_url)
+            .await
+            .expect("연결에 실패했습니다.");
+        // println!("WebSocket 연결 성공: {:?}", _res);
+
+        let (mut write, mut read) = ws_stream.split();
 
         let device_manager =
             request::get_device_manager(&self.master_addr, self.device_manager_uuid)
@@ -274,7 +293,7 @@ impl interface::Interface for Cli {
         process::exit(-1)
     }
 
-    async fn register_device_spec(&self, manager_uuid: Uuid) {
+    async fn register_device_spec(&self, manager_uuid: Uuid) -> Uuid {
         println!("device의 정보를 master에 저장합니다.");
 
         let mut system = System::new_all();
@@ -298,9 +317,12 @@ impl interface::Interface for Cli {
         {
             Ok(uuid) => {
                 println!(
-                    "device spec 등록 완료: {}",
+                    "{} 등록 완료: {}",
+                    "device spec".bold(),
                     uuid.to_string().yellow().bold()
                 );
+
+                uuid
             }
             Err(e) => {
                 println!("서버와의 연결상태를 다시 확인해주시기 바랍니다. {}", e);
@@ -309,7 +331,7 @@ impl interface::Interface for Cli {
         }
     }
 
-    async fn register_device_fs(&self, manager_uuid: Uuid) {
+    async fn register_device_fs(&self, manager_uuid: Uuid) -> Uuid {
         println!("Group에 공유할 file system의 root를 지정해주세요.");
         println!("e.g. MacOSX : /Users/username/Desktop/public_dir");
         println!("     Linux  : /home/username/public_dir");
@@ -331,7 +353,13 @@ impl interface::Interface for Cli {
             .await
         {
             Ok(uuid) => {
-                println!("device fs 등록 완료: {}", uuid.to_string().yellow().bold());
+                println!(
+                    "{} 등록 완료: {}",
+                    "device fs".bold(),
+                    uuid.to_string().yellow().bold()
+                );
+
+                uuid
             }
             Err(e) => {
                 println!("서버와의 연결상태를 다시 확인해주시기 바랍니다. {}", e);
