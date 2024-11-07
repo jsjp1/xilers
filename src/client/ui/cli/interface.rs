@@ -1,3 +1,4 @@
+use colored::Colorize;
 use std::process;
 use std::sync::{mpsc, Arc, Mutex};
 use std::{
@@ -24,7 +25,7 @@ pub struct Cli {
 
 impl Cli {
     fn print_indent(indent: usize, msg: &str) {
-        print!("{}{}", " ".repeat(indent * 4), msg);
+        print!("{}{}", " ".repeat(indent * 4), msg.bold());
     }
 
     fn println_indent(indent: usize, msg: &str) {
@@ -54,7 +55,14 @@ impl Cli {
 
     fn render_menu(indent: usize) {
         for (idx, action) in action::ActionNum::iter().enumerate() {
-            Cli::println_indent(indent + 1, &format!("{}> {}", idx, action));
+            Cli::println_indent(
+                indent + 1,
+                &format!(
+                    "{}> {}",
+                    idx.to_string().bold(),
+                    action.to_string().blue().bold()
+                ),
+            );
         }
     }
 
@@ -156,7 +164,10 @@ impl interface::Interface for Cli {
         // TODO: self.device_manager_uuid가 업데이트되는데, 이 uuid와 device의 uuid(spec | fs)를 websocket에 전달
         // TODO: websocket에서 진행하는 등록은 socket등록이지, clientGroup객체에의 등록이 아님 -> 아래 과정도 진행해야됨
 
-        println!("DeviceManager UUID: {}", self.device_manager_uuid);
+        println!(
+            "DeviceManager UUID: {}",
+            self.device_manager_uuid.to_string().yellow().bold()
+        );
         self.register_device_spec(self.device_manager_uuid).await;
         self.register_device_fs(self.device_manager_uuid).await;
 
@@ -252,7 +263,10 @@ impl interface::Interface for Cli {
 
             match (deleted_device_uuid_spec, deleted_device_uuid_fs) {
                 (Ok(uuid), Ok(_)) => {
-                    println!("Group에서 device를 제거하는데 성공했습니다: {}", uuid)
+                    println!(
+                        "Group에서 device를 제거하는데 성공했습니다: {}",
+                        uuid.to_string().yellow().bold()
+                    )
                 }
                 _ => println!("Device를 제거하는 과정에서 문제가 발생했습니다."),
             }
@@ -283,11 +297,13 @@ impl interface::Interface for Cli {
             .await
         {
             Ok(uuid) => {
-                println!("device spec 등록 완료: {}", uuid);
+                println!(
+                    "device spec 등록 완료: {}",
+                    uuid.to_string().yellow().bold()
+                );
             }
             Err(e) => {
-                println!("서버와의 연결상태를 다시 확인해주시기 바랍니다.");
-                println!("{:?}", e);
+                println!("서버와의 연결상태를 다시 확인해주시기 바랍니다. {}", e);
                 process::exit(-1);
             }
         }
@@ -315,11 +331,10 @@ impl interface::Interface for Cli {
             .await
         {
             Ok(uuid) => {
-                println!("device fs 등록 완료: {}", uuid);
+                println!("device fs 등록 완료: {}", uuid.to_string().yellow().bold());
             }
             Err(e) => {
-                println!("서버와의 연결상태를 다시 확인해주시기 바랍니다.");
-                println!("{:?}", e);
+                println!("서버와의 연결상태를 다시 확인해주시기 바랍니다. {}", e);
                 process::exit(-1);
             }
         }
@@ -368,8 +383,8 @@ impl interface::Interface for Cli {
                 self.device_manager_uuid = uuid;
             }
             Err(e) => {
-                println!("서버와의 연결상태를 다시 확인해주시기 바랍니다.");
-                println!("{:?}", e);
+                println!("서버와의 연결상태를 다시 확인해주시기 바랍니다. {}", e);
+                process::exit(-1);
             }
         }
     }

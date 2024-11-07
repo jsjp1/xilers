@@ -20,6 +20,7 @@ toml = "0.8.19"
 # client
 reqwest = "0.11"
 signal-hook = "0.3"
+colored = "2.0"
 
 [dependencies.uuid]
 version = "1.10.0"
