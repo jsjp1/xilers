@@ -60,12 +60,21 @@ impl Handler<Connect> for ClientGroupWs {
             &msg.self_id,
             &msg.room_id
         );
+
         self.rooms
             .entry(msg.room_id)
             .or_insert_with(HashSet::new)
             .insert(msg.self_id);
 
         self.sessions.insert(msg.self_id, msg.addr);
+
+        self.rooms
+            .get(&msg.room_id)
+            .unwrap()
+            .iter()
+            .for_each(|client| {
+                self.send_message("", client); // room에 속한 모든 device에 manager 갱신해야한다는 정보 알림
+            });
     }
 }
 

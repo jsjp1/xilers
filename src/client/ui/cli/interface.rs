@@ -1,5 +1,5 @@
 use colored::Colorize;
-use iced::futures::{SinkExt, StreamExt};
+use iced::futures::{self, pin_mut, SinkExt, StreamExt};
 use reqwest::Url;
 use std::process;
 use std::sync::{mpsc, Arc, Mutex};
@@ -8,6 +8,8 @@ use std::{
     io::{self, Write},
 };
 use sysinfo::{System, SystemExt};
+use tokio::runtime::Handle;
+use tokio_tungstenite::tungstenite;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use uuid::Uuid;
 
@@ -35,23 +37,25 @@ impl Cli {
         println!("{}{}", " ".repeat(indent * 4), msg);
     }
 
-    async fn sync_device_manager(&self, device_manager: Arc<Mutex<DeviceManager>>) {
+    async fn sync_device_manager(
+        &self,
+        device_manager: Arc<Mutex<DeviceManager>>,
+        read: impl futures::Stream<Item = Result<Message, tungstenite::Error>> + Unpin + Send + 'static,
+    ) {
         // TODO: websocket을 통해 전달받은 device:uuid 에 해당하는 spec과 fs 업데이트
-        let mut interval = tokio::time::interval(std::time::Duration::from_secs(1));
+        tokio::spawn(async move {
+            tokio::pin!(read);
 
-        let master_addr = self.master_addr.clone();
-        let device_manager_uuid = self.device_manager_uuid.clone();
+            while let Some(msg) = read.next().await {
+                match msg {
+                    Ok(Message::Text(text)) => {
+                        let _device_manager: DeviceManager = serde_json::from_str(&text).unwrap();
 
-        let thread_handle = tokio::task::spawn(async move {
-            loop {
-                interval.tick().await;
-                let _device_manager =
-                    request::get_device_manager(&master_addr, device_manager_uuid)
-                        .await
-                        .unwrap();
-
-                let mut device_manager_lock = device_manager.lock().unwrap();
-                let _ = std::mem::replace(&mut *device_manager_lock, _device_manager);
+                        let mut device_manager_lock = device_manager.lock().unwrap();
+                        let _ = std::mem::replace(&mut *device_manager_lock, _device_manager);
+                    }
+                    _ => {}
+                }
             }
         });
     }
@@ -188,22 +192,22 @@ impl interface::Interface for Cli {
             .expect("연결에 실패했습니다.");
         // println!("WebSocket 연결 성공: {:?}", _res);
 
-        let (mut write, mut read) = ws_stream.split();
-
         let device_manager =
             request::get_device_manager(&self.master_addr, self.device_manager_uuid)
                 .await
                 .unwrap();
         let device_manager = Arc::new(Mutex::new(device_manager));
 
+        let (mut write, mut read) = ws_stream.split();
+
+        let device_manager_clone = Arc::clone(&device_manager);
+        self.sync_device_manager(device_manager_clone, read);
+
         self.render(device_manager).await;
     }
 
     async fn render(&self, device_manager: Arc<Mutex<DeviceManager>>) {
         let indent: usize = 0;
-
-        let device_manager_clone = Arc::clone(&device_manager);
-        self.sync_device_manager(device_manager_clone).await;
 
         loop {
             Cli::render_menu(indent);
