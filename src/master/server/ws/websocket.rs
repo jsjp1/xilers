@@ -3,6 +3,7 @@ use actix::{Actor, Addr, Running, StreamHandler};
 use actix::{AsyncContext, Handler, Recipient};
 use actix_web_actors::ws;
 use actix_web_actors::ws::Message::Text;
+use std::fmt::Debug;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
 

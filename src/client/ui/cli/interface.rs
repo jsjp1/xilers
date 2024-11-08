@@ -8,7 +8,6 @@ use std::{
     io::{self, Write},
 };
 use sysinfo::{System, SystemExt};
-use tokio::runtime::Handle;
 use tokio_tungstenite::tungstenite;
 use tokio_tungstenite::{connect_async, tungstenite::protocol::Message};
 use uuid::Uuid;
@@ -40,20 +39,27 @@ impl Cli {
     async fn sync_device_manager(
         &self,
         device_manager: Arc<Mutex<DeviceManager>>,
-        mut write: impl futures::Sink<Message, Error = tungstenite::Error> + Unpin + Send + 'static,
         read: impl futures::Stream<Item = Result<Message, tungstenite::Error>> + Unpin + Send + 'static,
     ) {
         // TODO: websocket을 통해 전달받은 device:uuid 에 해당하는 spec과 fs 업데이트
+        let master_addr_clone = self.master_addr.clone();
+        let device_manager_uuid_clone = self.device_manager_uuid.clone();
+
         tokio::spawn(async move {
             tokio::pin!(read);
 
             while let Some(msg) = read.next().await {
                 match msg {
-                    Ok(Message::Text(text)) => {
-                        let _device_manager: DeviceManager = serde_json::from_str(&text).unwrap();
+                    Ok(Message::Text(_)) => {
+                        let _d = request::get_device_manager(
+                            &master_addr_clone,
+                            device_manager_uuid_clone,
+                        )
+                        .await
+                        .unwrap();
 
                         let mut device_manager_lock = device_manager.lock().unwrap();
-                        let _ = std::mem::replace(&mut *device_manager_lock, _device_manager);
+                        let _ = std::mem::replace(&mut *device_manager_lock, _d);
                     }
                     _ => {}
                 }
@@ -202,7 +208,7 @@ impl interface::Interface for Cli {
         let (mut write, mut read) = ws_stream.split();
 
         let device_manager_clone = Arc::clone(&device_manager);
-        self.sync_device_manager(device_manager_clone, write, read);
+        self.sync_device_manager(device_manager_clone, read).await;
 
         self.render(device_manager).await;
     }
