@@ -69,6 +69,7 @@ impl WebSocket {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
                 // TODO: 일정시간 이상 ping 응답 없다는 에러 로깅
+                log::info!("WebSocket 연결이 끊어졌습니다. {}", act.id);
                 ctx.stop();
                 return;
             }

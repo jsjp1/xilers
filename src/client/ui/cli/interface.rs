@@ -40,6 +40,7 @@ impl Cli {
     async fn sync_device_manager(
         &self,
         device_manager: Arc<Mutex<DeviceManager>>,
+        mut write: impl futures::Sink<Message, Error = tungstenite::Error> + Unpin + Send + 'static,
         read: impl futures::Stream<Item = Result<Message, tungstenite::Error>> + Unpin + Send + 'static,
     ) {
         // TODO: websocket을 통해 전달받은 device:uuid 에 해당하는 spec과 fs 업데이트
@@ -201,7 +202,7 @@ impl interface::Interface for Cli {
         let (mut write, mut read) = ws_stream.split();
 
         let device_manager_clone = Arc::clone(&device_manager);
-        self.sync_device_manager(device_manager_clone, read);
+        self.sync_device_manager(device_manager_clone, write, read);
 
         self.render(device_manager).await;
     }
