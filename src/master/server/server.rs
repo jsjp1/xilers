@@ -1,21 +1,15 @@
-use std::borrow::{Borrow, BorrowMut};
 use std::collections::HashMap;
-use std::net::{TcpListener, TcpStream};
-use std::sync::{Arc, Mutex};
-use std::{sync::mpsc, time};
+use std::sync::mpsc;
+use std::sync::Mutex;
 
 use actix::prelude::*;
-use actix_web::Responder;
-use actix_web::{dev::ServerHandle, middleware, rt, web, App, HttpRequest, HttpServer};
-use mongodb::bson::doc;
+use actix_web::{dev::ServerHandle, web, App, HttpServer};
 use uuid::Uuid;
 
 use super::api;
-use super::db::{self, MongoDB};
+use super::db::MongoDB;
 use super::device_manager::DeviceManager;
-use super::error_handler::{ErrorHandler, ErrorType};
 use super::ws::{connection::start_connection, lobby::ClientGroupWs};
-use crate::server::error_handler::NotAbortError;
 
 pub struct AppState {
     pub client_group: ClientGroup,

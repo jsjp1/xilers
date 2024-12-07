@@ -24,6 +24,7 @@ impl std::fmt::Debug for FileNode {
             let child = file_node.children;
 
             let formatted_str: String;
+            // TODO: fs::metadata 이용해서 변경하기
             if child.len() >= 1 {
                 formatted_str =
                     format!("{}{}/\n", " ".repeat((indent + 1) * 4), file_node.file_name);
@@ -149,5 +150,57 @@ impl FileSystem {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use std::path::Path;
+
+    fn setup_test_directory() -> &'static str {
+        let test_dir = "test_root";
+        fs::create_dir_all(test_dir).unwrap();
+        let _ = File::create(format!("{}/file1.txt", test_dir)).unwrap();
+        let _ = File::create(format!("{}/file2.txt", test_dir)).unwrap();
+        fs::create_dir_all(format!("{}/subdir", test_dir)).unwrap();
+        let _ = File::create(format!("{}/subdir/file3.txt", test_dir)).unwrap();
+        test_dir
+    }
+
+    #[test]
+    fn test_file_node_new_valid() {
+        let test_dir = setup_test_directory();
+
+        let node = FileNode::new(test_dir, true);
+        assert!(node.is_some());
+    }
+
+    #[test]
+    fn test_file_node_new_invalid() {
+        let node = FileNode::new("invalid_path", true);
+        assert!(node.is_none());
+    }
+
+    #[test]
+    fn test_file_system_new_with_existing_root() {
+        let test_dir = setup_test_directory();
+
+        let fs = FileSystem::new(&mut test_dir.to_string());
+        println!("{}", fs.node.file_name);
+        assert_eq!(fs.node.file_name, "test_root");
+    }
+
+    #[test]
+    fn test_file_system_init_file_node() {
+        let test_dir = setup_test_directory();
+
+        let mut fs = FileSystem::new(&mut test_dir.to_string());
+        fs.init_file_node();
+
+        assert!(fs.node.children.len() > 0); // Root should have children
+        assert_eq!(fs.node.children[0].file_name, "file2.txt");
     }
 }
